@@ -1,10 +1,5 @@
 import express from "express";
-import WebSocket from "ws";
 import bodyParser from "body-parser";
-
-const bodyParser = bodyParser;
-const express = express;
-const Websocket = WebSocket;
 
 const app = express();
 const PORT = process.env.PORT || 7866;
