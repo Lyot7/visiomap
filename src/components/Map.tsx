@@ -15,7 +15,7 @@ const Map = () => {
     // First useEffect: Fetch user locations on component mount
     useEffect(() => {
         const fetchUserLocations = async () => {
-            const response = await fetch('/api/user-locations'); // Fetch new locations
+            const response = await fetch('/users'); // Fetch new locations
             const locations = await response.json();
             setMapItems(locations); // Update state with new locations
         };
