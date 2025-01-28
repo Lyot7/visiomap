@@ -1,52 +1,66 @@
-"use client";
 import React, { useEffect, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
+import MapboxGL, { Marker } from 'react-map-gl';
 
-mapboxgl.accessToken = 'pk.eyJ1IjoiZWxpb3R0YnFybCIsImEiOiJjbGtjb3ozbWowcjg0M3FtdHdkbW9xNzIyIn0.kLerVKHmfUO0L2A43uXY9Q'; // Replace with your Mapbox access token
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiZWxpb3R0YnFybCIsImEiOiJjbGtjb3ozbWowcjg0M3FtdHdkbW9xNzIyIn0.kLerVKHmfUO0L2A43uXY9Q';
 
 interface MapItem {
     id: number;
-    coordinates: [number, number]; // Update the type to a tuple with exactly two elements
+    coordinates: [number, number]; 
 }
 
 const Map = () => {
     const [mapItems, setMapItems] = useState<MapItem[]>([]);
+    const [userPosition, setUserPosition] = useState({ lat: 0, lng: 0 });
 
-    // First useEffect: Fetch user locations on component mount
-    useEffect(() => {
-        const fetchUserLocations = async () => {
-            const response = await fetch('/users'); // Fetch new locations
-            const locations = await response.json();
-            setMapItems(locations); // Update state with new locations
-        };
-
-        fetchUserLocations(); // Call the function to fetch locations
-    }, []); // Run only once on mount
-
-    // Second useEffect: Update map markers when mapItems changes
-    useEffect(() => {
-        const map = new mapboxgl.Map({
-            container: 'map', // ID of the HTML element
-            style: 'mapbox://styles/mapbox/outdoors-v12', // Map style
-            center: [1.8252, 46.6034], // Centered in the geographical center of France
-            zoom: 5 // Adjust the zoom level as needed
-        });
-
-        // Clear existing markers and add new ones
-        map.on('load', () => {
-            mapItems.forEach(user => {
-                new mapboxgl.Marker()
-                    .setLngLat(user.coordinates) // Set marker position
-                    .setPopup(new mapboxgl.Popup().setText(`User ${user.id}`)) // Optional popup
-                    .addTo(map); // Add marker to the map
+    const getLocation = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const { latitude, longitude } = position.coords;
+                setUserPosition({ lat: latitude, lng: longitude });
+                // Send position to the server
+                fetch('/update-location', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ latitude, longitude })
+                });
             });
-        });
+        }
+    };
 
-        return () => map.remove(); // Cleanup on unmount
-    }, [mapItems]); // Re-run this effect when mapItems changes
+    const fetchConnectedUsers = async () => {
+        const response = await fetch('/users');
+        const locations = await response.json();
+        setMapItems(locations); 
+    };
+
+    useEffect(() => {
+        getLocation(); 
+        fetchConnectedUsers(); 
+        const interval = setInterval(getLocation, 10000); 
+        const userInterval = setInterval(fetchConnectedUsers, 10000); 
+        return () => {
+            clearInterval(interval);
+            clearInterval(userInterval);
+        };
+    }, []);
 
     return (
-        <div id="map" className="w-full h-[70vh] rounded-3xl overflow-hidden"></div>
+        <MapboxGL
+            initialViewState={{
+                latitude: userPosition.lat,
+                longitude: userPosition.lng,
+                zoom: 10
+            }}
+            style={{ width: '100%', height: '100%' }}
+            mapStyle='mapbox://styles/mapbox/streets-v11'
+            mapboxAccessToken={MAPBOX_TOKEN}
+        >
+            {mapItems.map((user, index) => (
+                <Marker key={index} longitude={user.coordinates[0]} latitude={user.coordinates[1]} anchor="bottom">
+                    <div style={{ color: 'red' }}>👤</div>
+                </Marker>
+            ))}
+        </MapboxGL>
     );
 };
 
