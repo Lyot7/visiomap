@@ -17,7 +17,7 @@ let users = [];
 
 // Create a WebSocket server
 const server = app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
 
 const wss = new WebSocket.Server({ server });
