@@ -1,8 +1,8 @@
-import express from "express";
-import bodyParser from "body-parser";
+const express = require("express");
+const bodyParser = require("body-parser");
 
 const app = express();
-const PORT = process.env.PORT || 7866;
+const PORT = process.env.PORT || 7864;
 
 // Middleware
 app.use(bodyParser.json());
@@ -20,6 +20,7 @@ const server = app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
+const WebSocket = require("ws");
 const wss = new WebSocket.Server({ server });
 
 // Handle WebSocket connections
