@@ -1,10 +1,14 @@
 import express from "express";
 import bodyParser from "body-parser";
+import { WebSocketServer } from 'ws';
+import cors from "cors";
+import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
 const PORT = process.env.PORT || 7864;
 
 // Middleware
+app.use(cors());
 app.use(bodyParser.json());
 
 // Root route
@@ -17,33 +21,35 @@ let users = [];
 
 // Create a WebSocket server
 const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port : ${PORT}`);
 });
 
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
 wss.on("connection", (ws) => {
   console.log("New client connected");
 
-  // Send a welcome message to the new client
-  ws.send(JSON.stringify({ message: "Welcome to the WebSocket server!" }));
+  // Generate a unique user ID (for example, using the current timestamp)
+  const userId = uuidv4();
+  const newUser = { id: userId, coordinates: [0, 0] }; // You can set default coordinates or handle them later
+  users.push(newUser); // Add the new user to the users array
 
-  // Handle incoming messages
-  ws.on("message", (message) => {
-    console.log(`Received: ${message}`);
-
-    // Broadcast the position update to all connected clients
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
+  // Send the updated users list to all clients
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(users)); // Send the updated users list
+    }
   });
 
-  // Handle client disconnection
+  ws.on("message", (message) => {
+    console.log(`Received: ${message}`);
+  });
+
   ws.on("close", () => {
     console.log("Client disconnected");
+    // Optionally, remove the user from the users array when they disconnect
+    users = users.filter(user => user.id !== userId);
   });
 });
 
@@ -81,3 +87,4 @@ app.delete("/users/:id", (req, res) => {
   users = users.filter((u) => u.id !== req.params.id);
   res.status(204).send();
 });
+
