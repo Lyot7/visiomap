@@ -5,13 +5,35 @@ import mapboxgl from "mapbox-gl";
 mapboxgl.accessToken =
   "pk.eyJ1IjoiZWxpb3R0YnFybCIsImEiOiJjbGtjb3ozbWowcjg0M3FtdHdkbW9xNzIyIn0.kLerVKHmfUO0L2A43uXY9Q"; // Replace with your Mapbox access token
 
+interface User {
+  id: number;
+  name: string;
+  // Add any other properties relevant to your user
+}
 const Map = () => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     // Establish WebSocket connection
     const ws = new WebSocket("ws://localhost:7864"); // Adjust the URL as necessary
-
+  
+    ws.onopen = () => {
+      console.log("WebSocket connection opened");
+      const name = prompt("What is your name ?");
+      const coordinates = { lat: 0, lng: 0 };
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          coordinates.lat = position.coords.latitude;
+          coordinates.lng = position.coords.longitude;
+        },
+        (err) => {
+          console.error("Error getting coordinates:", err);
+        }
+      );
+      ws.send(
+        JSON.stringify({ type: "connection", name: name, coordinates: coordinates })
+      );
+    };
     // Handle incoming messages
     ws.onmessage = (event) => {
       const updatedUsers = JSON.parse(event.data);

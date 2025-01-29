@@ -2,7 +2,6 @@ import express from "express";
 import bodyParser from "body-parser";
 import { WebSocketServer } from 'ws';
 import cors from "cors";
-import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
 const PORT = process.env.PORT || 7864;
@@ -29,18 +28,6 @@ const wss = new WebSocketServer({ server });
 // Handle WebSocket connections
 wss.on("connection", (ws) => {
   console.log("New client connected");
-
-  // Generate a unique user ID (for example, using the current timestamp)
-  const userId = uuidv4();
-  const newUser = { id: userId, coordinates: [0, 0] }; // You can set default coordinates or handle them later
-  users.push(newUser); // Add the new user to the users array
-
-  // Send the updated users list to all clients
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(users)); // Send the updated users list
-    }
-  });
 
   ws.on("message", (message) => {
     console.log(`Received: ${message}`);
