@@ -1,6 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
-import { WebSocketServer } from 'ws';
+import { WebSocketServer } from "ws";
 import cors from "cors";
 
 const app = express();
@@ -27,16 +27,26 @@ const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
 wss.on("connection", (ws) => {
-  console.log("New client connected");
+  const userId = Date.now();
+  console.log("New client connected", userId);
 
   ws.on("message", (message) => {
-    console.log(`Received: ${message}`);
+    const data = JSON.parse(message);
+    if (data.type === "connection") {
+      const user = { id: userId, ...data };
+      users.push(user);
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "newUser", users }));
+        }
+      });
+    }
   });
 
   ws.on("close", () => {
     console.log("Client disconnected");
-    // Optionally, remove the user from the users array when they disconnect
-    users = users.filter(user => user.id !== userId);
+    // remove the user from the users array when they disconnect
+    users = users.filter((user) => user.id !== userId);
   });
 });
 
@@ -74,4 +84,3 @@ app.delete("/users/:id", (req, res) => {
   users = users.filter((u) => u.id !== req.params.id);
   res.status(204).send();
 });
-

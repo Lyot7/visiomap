@@ -1,78 +1,73 @@
-"use client";
 import React, { useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
+import { FeatureCollection } from 'geojson';
 
-mapboxgl.accessToken =
-  "pk.eyJ1IjoiZWxpb3R0YnFybCIsImEiOiJjbGtjb3ozbWowcjg0M3FtdHdkbW9xNzIyIn0.kLerVKHmfUO0L2A43uXY9Q"; // Replace with your Mapbox access token
+mapboxgl.accessToken = "pk.eyJ1IjoiZWxpb3R0YnFybCIsImEiOiJjbGtjb3ozbWowcjg0M3FtdHdkbW9xNzIyIn0.kLerVKHmfUO0L2A43uXY9Q"; // Replace with your Mapbox access token
 
 interface User {
   id: number;
   name: string;
-  // Add any other properties relevant to your user
+  coordinates: { lat: number; lng: number };
 }
-const Map = () => {
-  const [users, setUsers] = useState<User[]>([]);
 
+interface MapProps {
+  users: User[]
+}
+
+const Map: React.FC<MapProps> = ({ users }) => {
+  const [userPoints, setUserPoints] = useState<FeatureCollection>({
+    type: "FeatureCollection",
+    features: []
+  });
   useEffect(() => {
-    // Establish WebSocket connection
-    const ws = new WebSocket("ws://localhost:7864"); // Adjust the URL as necessary
-  
-    ws.onopen = () => {
-      console.log("WebSocket connection opened");
-      const name = prompt("What is your name ?");
-      const coordinates = { lat: 0, lng: 0 };
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          coordinates.lat = position.coords.latitude;
-          coordinates.lng = position.coords.longitude;
+    setUserPoints({
+      type: "FeatureCollection",
+      features: users.map((user) => ({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [user.coordinates.lng, user.coordinates.lat]
         },
-        (err) => {
-          console.error("Error getting coordinates:", err);
+        properties: {
+          name: user.name
         }
-      );
-      ws.send(
-        JSON.stringify({ type: "connection", name: name, coordinates: coordinates })
-      );
-    };
-    // Handle incoming messages
-    ws.onmessage = (event) => {
-      const updatedUsers = JSON.parse(event.data);
-      setUsers(updatedUsers); // Update users state with new data
-    };
+      }))
+    });
+  }, [users]);
 
-    // Clean up the WebSocket connection on unmount
-    return () => {
-      ws.close();
-    };
-  }, []);
-
-
-
-  // Second useEffect: Update map markers when mapItems changes
   useEffect(() => {
     const map = new mapboxgl.Map({
-      container: "map", // ID of the HTML element
-      style: "mapbox://styles/mapbox/outdoors-v12", // Map style
-      center: [1.8252, 46.6034], // Centered in the geographical center of France
-      zoom: 5, // Adjust the zoom level as needed
+      container: "map", // ID of the container element
+      style: "mapbox://styles/mapbox/streets-v11",
+      center: [1.8252, 46.6034], // Starting position [lng, lat]
+      zoom: 2 // Starting zoom level
     });
 
-    // Clear existing markers and add new ones
-    // map.on("load", () => {
-    //   users.forEach((user) => {
-    //     new mapboxgl.Marker()
-    //       .setLngLat(user.coordinates) // Set marker position
-    //       .setPopup(new mapboxgl.Popup().setText(`User ${user.id}`)) // Optional popup
-    //       .addTo(map); // Add marker to the map
-    //   });
-    // });
+    map.on("load", () => {
+      // Add the userpoints data as a source
+      if (userPoints) {
+        map.addSource("geojson-data", {
+          type: "geojson",
+          data: userPoints
+        });
+
+        // Add a layer to visualize the GeoJSON data
+        map.addLayer({
+          id: "points",
+          type: "circle",
+          source: "geojson-data",
+          paint: {
+            "circle-radius": 6,
+            "circle-color": "#B42222"
+          }
+        });
+      }
+    });
 
     return () => map.remove(); // Cleanup on unmount
-  }, [users]); // Re-run this effect when users changes
+  }, [userPoints]);
 
-  return (
-    <div id="map" className="w-full h-[70vh] rounded-3xl overflow-hidden"></div>
-  );
+  return <div className="rounded-2xl h-[70%] w-full" id="map" />
 };
 
 export default Map;
