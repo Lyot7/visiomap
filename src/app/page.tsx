@@ -18,7 +18,7 @@ export default function Home() {
 
   useEffect(() => {
     // Establish WebSocket connection
-    const ws = new WebSocket("ws://localhost:7864"); // Adjust the URL as necessary
+    const ws = new WebSocket(`ws://${window.location.hostname}:7864`); // Adjust the URL as necessary
 
     ws.onopen = () => {
       const name = prompt("Donne moi ton p'tit nom") || "Anonymous";
