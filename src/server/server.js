@@ -2,6 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import { WebSocketServer } from "ws";
 import cors from "cors";
+import { v4 as uuidv4 } from "uuid";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -30,7 +31,15 @@ const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
 wss.on("connection", (ws) => {
-  const userId = Date.now();
+  const userId = uuidv4();
+
+  ws.send(
+    JSON.stringify({
+      type: "userID",
+      id: userId,
+    })
+  );
+
   console.log("New client connected", userId);
 
   ws.on("message", (message) => {
@@ -56,34 +65,4 @@ wss.on("connection", (ws) => {
 // API Endpoints
 app.get("/users", (req, res) => {
   res.json(users);
-});
-
-app.post("/users", (req, res) => {
-  const user = req.body;
-  users.push(user);
-  res.status(201).json(user);
-});
-
-app.get("/users/:id", (req, res) => {
-  const user = users.find((u) => u.id === req.params.id);
-  if (user) {
-    res.json(user);
-  } else {
-    res.status(404).send("User not found");
-  }
-});
-
-app.put("/users/:id", (req, res) => {
-  const userIndex = users.findIndex((u) => u.id === req.params.id);
-  if (userIndex !== -1) {
-    users[userIndex] = { ...users[userIndex], ...req.body };
-    res.json(users[userIndex]);
-  } else {
-    res.status(404).send("User not found");
-  }
-});
-
-app.delete("/users/:id", (req, res) => {
-  users = users.filter((u) => u.id !== req.params.id);
-  res.status(204).send();
 });

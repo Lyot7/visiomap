@@ -9,12 +9,15 @@ dotenv.config();
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
+  const [myID, setMyID] = useState<number>(0);
+
+  console.log(myID);
 
   useEffect(() => {
     console.log(users);
   }, [users]);
 
-  useWebSocket(process.env.NEXT_PUBLIC_PORT!, users, setUsers);
+  useWebSocket(process.env.NEXT_PUBLIC_PORT!, setUsers, setMyID);
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">
@@ -25,9 +28,17 @@ export default function Home() {
           <h2>Utilisateurs connectés:</h2>
           <ul>
             {users.map((user, index) => (
-              <li key={index}>
-                {user.name}, {user.coordinates.lat}, {user.coordinates.lng}
-              </li>
+              user.id == myID ? (
+                <li key={index} className="mb-4 flex">
+                  <h3 className="text-2xl">Moi</h3>
+                  <h2 className="text-xl">{user.coordinates.lat}, {user.coordinates.lng}</h2>
+                </li>
+              ) : (
+                <li key={index} className="mb-4 flex">
+                  <h3 className="text-2xl">{user.name}</h3>
+                  <h2 className="text-xl">{user.coordinates.lat}, {user.coordinates.lng}</h2>
+                </li>
+              )
             ))}
           </ul>
         </div>

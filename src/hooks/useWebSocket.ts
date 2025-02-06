@@ -9,14 +9,22 @@ export interface User {
 
 export const useWebSocket = (
   port: string,
-  users: User[],
-  setUsers: React.Dispatch<React.SetStateAction<User[]>>
+  setUsers: React.Dispatch<React.SetStateAction<User[]>>,
+  setMyID: React.Dispatch<React.SetStateAction<number>>
 ) => {
   useEffect(() => {
     const ws = new WebSocket(`ws://${window.location.hostname}:${port}`);
 
     ws.onopen = () => {
-      const userId = Date.now();
+      let userId = 1234;
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "userID") {
+          userId = data.id;
+          setMyID(userId);
+          console.log("User ID:", userId);
+        }
+      };
       const name = prompt("Donne moi ton p'tit nom") || "Anonymous";
       const coordinates = {
         lat: 0,
@@ -50,6 +58,13 @@ export const useWebSocket = (
           );
         }
       );
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "newUser") {
+          setUsers(data.users);
+          console.log("Updated users:", data.users);
+        }
+      };
       const user: User = {
         id: userId,
         name: name,
@@ -61,13 +76,6 @@ export const useWebSocket = (
     setInterval(() => {
       ws.send(JSON.stringify({ type: "getUsers" }));
     }, 2000);
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "newUser") {
-        setUsers(data.users);
-      }
-    };
 
     return () => {
       ws.close();
