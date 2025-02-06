@@ -29,13 +29,13 @@ export default function Home() {
           <ul>
             {users.map((user, index) => (
               user.id == myID ? (
-                <li key={index} className="mb-4 flex">
-                  <h3 className="text-2xl">Moi</h3>
+                <li key={index} className="mb-4 flex items-center">
+                  <h3 className="text-2xl mr-2">Moi</h3>
                   <h2 className="text-xl">{user.coordinates.lat}, {user.coordinates.lng}</h2>
                 </li>
               ) : (
-                <li key={index} className="mb-4 flex">
-                  <h3 className="text-2xl">{user.name}</h3>
+                <li key={index} className="mb-4 flex items-center">
+                  <h3 className="text-2xl mr-2">{user.name}</h3>
                   <h2 className="text-xl">{user.coordinates.lat}, {user.coordinates.lng}</h2>
                 </li>
               )
