@@ -9,12 +9,12 @@ dotenv.config();
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
-  const port = process.env.NEXT_PUBLIC_PORT || "3000"; // Default to 3000 if the port is not provided
-  const connectedUsers = useWebSocket(port); // Use the custom hook
 
   useEffect(() => {
-    setUsers(connectedUsers); // Update state when users change
-  }, [connectedUsers]);
+    console.log(users);
+  }, [users]);
+
+  useWebSocket(process.env.NEXT_PUBLIC_PORT!, users, setUsers);
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">
@@ -25,7 +25,9 @@ export default function Home() {
           <h2>Utilisateurs connectés:</h2>
           <ul>
             {users.map((user, index) => (
-              <li key={index}>{user.name}, {user.coordinates.lat}, {user.coordinates.lng}</li>
+              <li key={index}>
+                {user.name}, {user.coordinates.lat}, {user.coordinates.lng}
+              </li>
             ))}
           </ul>
         </div>

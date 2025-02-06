@@ -1,5 +1,5 @@
-// useWebSocket.ts
-import { useState, useEffect } from "react";
+"use client";
+import { useEffect } from "react";
 
 export interface User {
   id: number;
@@ -7,14 +7,21 @@ export interface User {
   coordinates: { lat: number; lng: number };
 }
 
-const useWebSocket = (port: string) => {
-  const [users, setUsers] = useState<User[]>([]);
-
+export const useWebSocket = (
+  port: string,
+  users: User[],
+  setUsers: React.Dispatch<React.SetStateAction<User[]>>
+) => {
   useEffect(() => {
     const ws = new WebSocket(`ws://${window.location.hostname}:${port}`);
 
     ws.onopen = () => {
+      const userId = Date.now();
       const name = prompt("Donne moi ton p'tit nom") || "Anonymous";
+      const coordinates = {
+        lat: 0,
+        lng: 0,
+      };
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const coordinates = {
@@ -33,6 +40,7 @@ const useWebSocket = (port: string) => {
         },
         () => {
           console.log("Failed to get user's location");
+
           ws.send(
             JSON.stringify({
               type: "connection",
@@ -42,6 +50,12 @@ const useWebSocket = (port: string) => {
           );
         }
       );
+      const user: User = {
+        id: userId,
+        name: name,
+        coordinates: coordinates,
+      };
+      setUsers((prevState) => [...prevState, user]);
     };
 
     setInterval(() => {
@@ -59,8 +73,6 @@ const useWebSocket = (port: string) => {
       ws.close();
     };
   }, [port]);
-
-  return users;
 };
 
 export default useWebSocket;

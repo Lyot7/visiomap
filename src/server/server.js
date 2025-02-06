@@ -40,7 +40,7 @@ wss.on("connection", (ws) => {
       users.push(user);
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "newUser", users }));
+          client.send(JSON.stringify({ type: "newUser", users }));
         }
       });
     }
