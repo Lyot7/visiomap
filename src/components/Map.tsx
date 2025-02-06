@@ -1,14 +1,9 @@
 import React, { useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { FeatureCollection } from 'geojson';
+import { User } from '@/hooks/useWebSocket';
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX; // Replace with your Mapbox access token
-
-interface User {
-  id: number;
-  name: string;
-  coordinates: { lat: number; lng: number };
-}
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX;
 
 interface MapProps {
   users: User[]
