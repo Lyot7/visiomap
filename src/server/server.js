@@ -3,8 +3,11 @@ import bodyParser from "body-parser";
 import { WebSocketServer } from "ws";
 import cors from "cors";
 
+import dotenv from "dotenv";
+dotenv.config();
+
 const app = express();
-const PORT = process.env.PORT || 7864;
+const PORT = process.env.NEXT_PUBLIC_PORT || 1234;
 
 // Middleware
 app.use(cors());

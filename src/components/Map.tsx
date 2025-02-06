@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { FeatureCollection } from 'geojson';
 
-mapboxgl.accessToken = "pk.eyJ1IjoiZWxpb3R0YnFybCIsImEiOiJjbGtjb3ozbWowcjg0M3FtdHdkbW9xNzIyIn0.kLerVKHmfUO0L2A43uXY9Q"; // Replace with your Mapbox access token
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX; // Replace with your Mapbox access token
 
 interface User {
   id: number;

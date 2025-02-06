@@ -1,6 +1,8 @@
 "use client";
 import Map from "@/components/Map";
 import React, { useState, useEffect } from 'react';
+import dotenv from "dotenv";
+dotenv.config();
 
 export interface User {
   id: number;
@@ -18,7 +20,7 @@ export default function Home() {
 
   useEffect(() => {
     // Establish WebSocket connection
-    const ws = new WebSocket(`ws://${window.location.hostname}:7864`); // Adjust the URL as necessary
+    const ws = new WebSocket(`ws://${window.location.hostname}:${process.env.NEXT_PUBLIC_PORT}`);
 
     ws.onopen = () => {
       const name = prompt("Donne moi ton p'tit nom") || "Anonymous";
