@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import { WebSocketServer, WebSocket } from "ws";
 import { v4 as uuidv4 } from "uuid";
 import https from "https";
+import cors from "cors";
 import fs from "fs";
 import dotenv from "dotenv";
 dotenv.config();
