@@ -1,6 +1,26 @@
 // VideoCall.tsx
 import React, { useRef, useEffect, useState } from 'react';
 
+interface WebRTCOfferMessage {
+    action: "webrtc-offer";
+    source: string;
+    offer: RTCSessionDescriptionInit;
+}
+
+interface WebRTCAnswerMessage {
+    action: "webrtc-answer";
+    source: string;
+    answer: RTCSessionDescriptionInit;
+}
+
+interface WebRTCIceMessage {
+    action: "webrtc-ice";
+    source: string;
+    candidate: RTCIceCandidateInit;
+}
+
+type WebRTCMessage = WebRTCOfferMessage | WebRTCAnswerMessage | WebRTCIceMessage;
+
 interface VideoCallProps {
     socket: WebSocket;
     myID: string;
@@ -76,8 +96,9 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         if (!socket || !pcRef.current) return;
         const pc = pcRef.current;
 
-        // Helper function to handle an offer using the parsed data
-        const handleOffer = (offerData: any) => {
+        // Helper function to handle an offer using the parsed data.
+        // It accepts a WebRTCOfferMessage instead of any.
+        const handleOffer = (offerData: WebRTCOfferMessage): void => {
             if (!localStream) {
                 console.warn("[VideoCall] Flux local non disponible, attente de 1 seconde...");
                 setTimeout(() => handleOffer(offerData), 1000);
@@ -100,12 +121,12 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
 
         const handleSocketMessage = (event: MessageEvent) => {
             try {
-                const data = JSON.parse(event.data);
+                const data = JSON.parse(event.data) as WebRTCMessage;
                 console.log("[VideoCall] Message reçu :", data);
 
                 if (data.action === "webrtc-offer" && data.source === remoteId) {
                     console.log("[VideoCall] Offre reçue du remoteId :", remoteId);
-                    // Use the helper to process the offer data
+                    // TypeScript now knows that data is a WebRTCOfferMessage
                     handleOffer(data);
                 } else if (data.action === "webrtc-answer" && data.source === remoteId) {
                     console.log("[VideoCall] Réponse reçue du remoteId :", remoteId);
