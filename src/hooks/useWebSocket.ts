@@ -20,6 +20,15 @@ export const useWebSocket = (
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
+  // Helper function that sends a message only when the socket is open.
+  const safeSend = (data: any) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(data));
+    } else {
+      console.warn("WebSocket is not open. Cannot send message:", data);
+    }
+  };
+
   useEffect(() => {
     const newSocket = new WebSocket(
       `wss://${window.location.hostname}:${port}`
@@ -29,15 +38,11 @@ export const useWebSocket = (
   }, [port]);
 
   const handleConnect = (userId: string, myID: string) => {
-    if (socket) {
-      socket.send(
-        JSON.stringify({
-          action: "connect",
-          userId,
-          myID,
-        })
-      );
-    }
+    safeSend({
+      action: "connect",
+      userId,
+      myID,
+    });
   };
 
   const sendCallInvitation = (
@@ -45,23 +50,17 @@ export const useWebSocket = (
     recieverId: string,
     users: User[]
   ) => {
-    if (socket) {
-      const caller = users.find((user) => user.id.toString() === callerId);
-      socket.send(
-        JSON.stringify({
-          action: "call-invitation",
-          callerId: callerId,
-          recieverId: recieverId,
-          callerName: caller ? caller.name : "Quelqu'un",
-        })
-      );
-    }
+    const caller = users.find((user) => user.id.toString() === callerId);
+    safeSend({
+      action: "call-invitation",
+      callerId: callerId,
+      recieverId: recieverId,
+      callerName: caller ? caller.name : "Quelqu'un",
+    });
   };
 
   const handleDeny = () => {
-    if (socket) {
-      socket.send(JSON.stringify({ action: "deny" }));
-    }
+    safeSend({ action: "deny" });
   };
 
   useEffect(() => {
@@ -82,7 +81,7 @@ export const useWebSocket = (
             setModalOpen(true);
           } else if (data.type === "call-accepted") {
             console.log(`Call accepted by ${data.from}`);
-            // Le caller reçoit la confirmation et démarre la visio
+            // For the caller, once confirmed, start the video call
             setCallData({ role: "caller", remoteId: data.from });
           }
         };
@@ -94,30 +93,26 @@ export const useWebSocket = (
               lat: position.coords.latitude,
               lng: position.coords.longitude,
             };
-            socket.send(
-              JSON.stringify({
-                type: "connection",
-                name: name,
-                coordinates: coordinates,
-              })
-            );
+            safeSend({
+              type: "connection",
+              name: name,
+              coordinates: coordinates,
+            });
           },
           () => {
             console.log("Failed to get user's location");
-            socket.send(
-              JSON.stringify({
-                type: "connection",
-                name: "Anonymous",
-                coordinates: { lat: 0, lng: 0 },
-              })
-            );
+            safeSend({
+              type: "connection",
+              name: "Anonymous",
+              coordinates: { lat: 0, lng: 0 },
+            });
           }
         );
       };
 
-      // Optionnel : demande périodique de la liste des utilisateurs
+      // Optional: Periodically request the list of users.
       const intervalId = setInterval(() => {
-        socket.send(JSON.stringify({ action: "get-users" }));
+        safeSend({ action: "get-users" });
       }, 8000);
 
       return () => clearInterval(intervalId);
