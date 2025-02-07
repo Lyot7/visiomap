@@ -34,7 +34,7 @@ const useWebSocket = (
 
   useEffect(() => {
     const newSocket = new WebSocket(
-      `wss://eliott.bouquerel.caen.mds-project.fr`
+      `wss://eliott.bouquerel.caen.mds-project.fr:${port}`
     );
     setSocket(newSocket);
     return () => newSocket.close();
