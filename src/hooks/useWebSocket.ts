@@ -38,7 +38,7 @@ const useWebSocket = (
     );
     setSocket(newSocket);
     return () => newSocket.close();
-  }, []);
+  }, [port]);
 
   const handleConnect = (userId: string, myID: string) => {
     safeSend({
@@ -120,7 +120,17 @@ const useWebSocket = (
 
       return () => clearInterval(intervalId);
     }
-  }, [socket]);
+  }, [
+    socket,
+    port,
+    safeSend,
+    setUsers,
+    setMyID,
+    setModalOpen,
+    setCallerName,
+    setCallerIdForCall,
+    setCallData,
+  ]);
 
   return {
     socket,
