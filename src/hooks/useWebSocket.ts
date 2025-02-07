@@ -120,17 +120,7 @@ const useWebSocket = (
 
       return () => clearInterval(intervalId);
     }
-  }, [
-    socket,
-    port,
-    safeSend,
-    setUsers,
-    setMyID,
-    setModalOpen,
-    setCallerName,
-    setCallerIdForCall,
-    setCallData,
-  ]);
+  }, [socket]);
 
   return {
     socket,
