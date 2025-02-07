@@ -32,11 +32,9 @@ const useWebSocket = (
     [socket]
   );
 
-  console.log(window.location.hostname);
-
   useEffect(() => {
     const newSocket = new WebSocket(
-      `wss://${window.location.hostname}:${port}`
+      `wss://eliott.bouquerel.caen.mds-project.fr:${port}`
     );
     setSocket(newSocket);
     return () => newSocket.close();
