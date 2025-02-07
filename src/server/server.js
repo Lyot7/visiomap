@@ -8,9 +8,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
+
 const PORT = process.env.NEXT_PUBLIC_PORT || 1234;
 
 // Middleware
+app.use(cors());
 app.use(bodyParser.json());
 
 // Root route
