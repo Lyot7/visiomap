@@ -121,7 +121,6 @@ const useWebSocket = (
     }
   }, [
     socket,
-    port,
     safeSend,
     setUsers,
     setMyID,
