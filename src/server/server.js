@@ -31,9 +31,6 @@ const sslOptions = {
   cert: fs.readFileSync(
     "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/fullchain.pem"
   ),
-  ca: fs.readFileSync(
-    "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/chain.pem"
-  ),
 };
 console.log(sslOptions);
 
@@ -160,4 +157,9 @@ wss.on("connection", (wss) => {
 
 server.listen(PORT, () => {
   console.log(`Server is running on port : ${PORT}`);
+});
+
+// Test config VPS
+server.listen(7864, "0.0.0.0", () => {
+  console.log("Server listening on port 7864");
 });
