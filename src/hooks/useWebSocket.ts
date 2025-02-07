@@ -33,7 +33,7 @@ const useWebSocket = (
 
   useEffect(() => {
     const newSocket = new WebSocket(
-      `wss://eliott.bouquerel.caen.mds-project.fr/ws/`
+      `wss://eliott.bouquerel.caen.mds-project.fr/ws`
     );
     setSocket(newSocket);
     return () => newSocket.close();
