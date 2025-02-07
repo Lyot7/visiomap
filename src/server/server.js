@@ -32,7 +32,6 @@ const sslOptions = {
     "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/fullchain.pem"
   ),
 };
-console.log(sslOptions);
 
 // Create an HTTPS server and attach a WebSocket server to it.
 const server = https.createServer(sslOptions, app);

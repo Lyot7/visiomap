@@ -34,7 +34,7 @@ const useWebSocket = (
 
   useEffect(() => {
     const newSocket = new WebSocket(
-      `wss://eliott.bouquerel.caen.mds-project.fr:${port}`
+      `wss://eliott.bouquerel.caen.mds-project.fr`
     );
     setSocket(newSocket);
     return () => newSocket.close();
@@ -116,7 +116,7 @@ const useWebSocket = (
       // Optionally, periodically request the list of users.
       const intervalId = setInterval(() => {
         safeSend({ action: "get-users" });
-      }, 8000);
+      }, 5000);
 
       return () => clearInterval(intervalId);
     }
