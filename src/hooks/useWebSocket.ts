@@ -32,6 +32,8 @@ export const useWebSocket = (
     [socket]
   );
 
+  console.log(window.location.hostname);
+
   useEffect(() => {
     const newSocket = new WebSocket(
       `wss://${window.location.hostname}:${port}`
