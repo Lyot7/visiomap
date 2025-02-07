@@ -5,7 +5,6 @@ import VideoCall from '@/components/VideoCall';
 import React, { useState } from 'react';
 import dotenv from "dotenv";
 import useWebSocket, { User } from "@/hooks/useWebSocket";
-import { useEffect } from 'react';
 
 dotenv.config();
 
