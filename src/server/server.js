@@ -4,7 +4,6 @@ import { WebSocketServer } from "ws";
 import cors from "cors";
 import { v4 as uuidv4 } from "uuid";
 import http from "http";
-import { Server } from "socket.io";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -32,6 +31,7 @@ const wss = new WebSocketServer({ server });
 // Handle WebSocket connections
 wss.on("connection", (ws) => {
   const userId = uuidv4();
+  ws.userId = userId;
 
   ws.send(
     JSON.stringify({
@@ -39,8 +39,6 @@ wss.on("connection", (ws) => {
       id: userId,
     })
   );
-
-  console.log("New client connected", userId);
 
   ws.on("message", (message) => {
     const data = JSON.parse(message);
@@ -53,6 +51,34 @@ wss.on("connection", (ws) => {
         }
       });
     }
+    switch (data.action) {
+      case "get-users":
+        ws.send(JSON.stringify({ type: "users", users }));
+        break;
+      case "call-invitation":
+        const callerId = data.callerId;
+        const recieverId = data.recieverId;
+        console.log("callerId : ", callerId, " recieverId : ", recieverId);
+        const recipient = [...wss.clients].find(
+          (client) => client.userId === recieverId.toString()
+        );
+        console.log(
+          "Connected clients:",
+          [...wss.clients].map((client) => client.userId)
+        );
+        console.log("recipient : ", recipient);
+        if (recipient) {
+          recipient.send(
+            JSON.stringify({
+              type: "call-invitation",
+              callerId: callerId,
+              recieverId: recieverId,
+            })
+          );
+        }
+        break;
+      default:
+    }
   });
 
   ws.on("close", () => {
@@ -61,43 +87,6 @@ wss.on("connection", (ws) => {
     users = users.filter((user) => user.id !== userId);
   });
 });
-
-// API Endpoints
-app.get("/users", (req, res) => {
-  res.json(users);
-});
-
-// Endpoint to handle connection requests
-app.post("/connect", (req, res) => {
-  const { userId, myID } = req.body;
-  if (userId === myID) {
-    return res.status(400).send("Cannot connect to yourself.");
-  }
-  // Emit invitation to the user
-  const io = getIO();
-  io.to(userId).emit("call-invitation", { from: myID });
-  res.status(200).send("Invitation sent.");
-});
-
-// WebRTC signaling logic
-let ioInstance;
-function getIO() {
-  if (!ioInstance) {
-    ioInstance = new Server(server);
-    ioInstance.on("connection", (socket) => {
-      socket.on("accept-call", (data) => {
-        const { callerId } = data;
-        socket.to(callerId).emit("call-accepted", { from: socket.id });
-      });
-
-      socket.on("reject-call", (data) => {
-        const { callerId } = data;
-        socket.to(callerId).emit("call-rejected", { from: socket.id });
-      });
-    });
-  }
-  return ioInstance;
-}
 
 server.listen(PORT, () => {
   console.log(`Server is running on port : ${PORT}`);

@@ -1,14 +1,14 @@
 import React from 'react';
 
 interface CallInvitationModalProps {
-    isOpen: boolean;
+    isModalOpen: boolean;
     onAccept: () => void;
     onDeny: () => void;
     callerName: string;
 }
 
-const CallInvitationModal: React.FC<CallInvitationModalProps> = ({ isOpen, onAccept, onDeny, callerName }) => {
-    if (!isOpen) return null;
+const CallInvitationModal: React.FC<CallInvitationModalProps> = ({ isModalOpen, onAccept, onDeny, callerName }) => {
+    if (!isModalOpen) return null;
 
     return (
         <div className="modal absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[50vh] h-[50vh] bg-gray-800 text-white rounded-lg shadow-lg ">

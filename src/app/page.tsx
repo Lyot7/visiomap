@@ -23,14 +23,14 @@ export default function Home() {
   const handleConnectRequest = (receiverId: number) => {
     console.log(`Calling user ${receiverId} from user ${myID}`);
     setReceiverId(receiverId);
-    sendCallInvitation(myID.toString(), receiverId.toString());
+    sendCallInvitation(myID, receiverId);
   };
 
   const callerName = users.find((user) => user.id === myID)?.name || "Quelqu'un";
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">
-      <CallInvitationModal isOpen={isModalOpen}
+      <CallInvitationModal isModalOpen={isModalOpen}
         onAccept={() => {
           console.log('Call accepted');
           handleAccept(receiverId.toString(), myID.toString());

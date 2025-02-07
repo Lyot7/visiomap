@@ -23,20 +23,30 @@ export const useWebSocket = (
 
   const handleConnect = (userId: string, myID: string) => {
     if (socket) {
-      socket.send(JSON.stringify({ action: "connect", userId, myID }));
-    }
-  };
-
-  const sendCallInvitation = (callerId: string, receiverId: string) => {
-    if (socket) {
       socket.send(
-        JSON.stringify({ action: "call-invitation", callerId, receiverId })
+        JSON.stringify({
+          action: "connect",
+          userId,
+          myID,
+        })
       );
     }
   };
 
-  const handleAccept = (receiverId: string, myID: string) => {
-    handleConnect(receiverId, myID);
+  const sendCallInvitation = (callerId: number, recieverId: number) => {
+    if (socket) {
+      socket.send(
+        JSON.stringify({
+          action: "call-invitation",
+          callerId: callerId,
+          recieverId: recieverId,
+        })
+      );
+    }
+  };
+
+  const handleAccept = (recieverId: string, myID: string) => {
+    handleConnect(recieverId, myID);
   };
 
   const handleDeny = () => {
@@ -54,6 +64,19 @@ export const useWebSocket = (
           if (data.type === "userID") {
             userId = data.id;
             setMyID(userId);
+          } else if (data.type === "newUser") {
+            setUsers(data.users);
+          } else if (data.type === "call-invitation") {
+            console.log(`Received call invitation from ${data.callerId}`);
+            setModalOpen(true);
+          } else if (data.type === "invitation-sent") {
+            console.log("Invitation sent");
+          } else if (data.type === "call-accepted") {
+            console.log(`Call with ${data.from} has been accepted`);
+          } else if (data.type === "call-rejected") {
+            console.log(`Call with ${data.from} has been rejected`);
+          } else if (data.type === "error") {
+            console.log(data.message);
           }
         };
         const name = prompt("Donne moi ton p'tit nom") || "Anonymous";
@@ -88,15 +111,7 @@ export const useWebSocket = (
             );
           }
         );
-        socket.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          if (data.type === "newUser") {
-            setUsers(data.users);
-          } else if (data.type === "call-invitation") {
-            console.log(`Someone is trying to call you: ${data.callerId}`);
-            setModalOpen(true);
-          }
-        };
+
         const user: User = {
           id: userId,
           name: name,
@@ -107,7 +122,7 @@ export const useWebSocket = (
 
       setInterval(() => {
         socket.send(JSON.stringify({ type: "getUsers" }));
-      }, 2000);
+      }, 8000);
     }
   }, [socket, port, setUsers]);
 
