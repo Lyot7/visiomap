@@ -62,7 +62,7 @@ const Map: React.FC<MapProps> = ({ users }) => {
     return () => map.remove(); // Cleanup on unmount
   }, [userPoints]);
 
-  return <div className="rounded-2xl h-[70%] w-[50%]" id="map" />
+  return <div className="rounded-2xl overflow-hidden h-[70%] w-[50%]" id="map" />
 };
 
 export default Map;
