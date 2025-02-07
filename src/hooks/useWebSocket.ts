@@ -23,7 +23,7 @@ const useWebSocket = (
   // Use a callback that sends data only when the WebSocket is open.
   const safeSend = useCallback(
     (data: Record<string, unknown>): void => {
-      if (socket) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(data));
       } else {
         console.warn("WebSocket is not open. Cannot send message:", data);
@@ -38,7 +38,7 @@ const useWebSocket = (
     );
     setSocket(newSocket);
     return () => newSocket.close();
-  }, [port]);
+  }, []);
 
   const handleConnect = (userId: string, myID: string) => {
     safeSend({
