@@ -18,12 +18,9 @@ export default function Home() {
   const [callerName, setCallerName] = useState<string>("Quelqu'un");
   // Une fois l'appel accepté, on enregistre le rôle et l'ID du pair
   const [callData, setCallData] = useState<{ role: "caller" | "callee"; remoteId: string } | null>(null);
-  const [port, setPort] = useState<number>(1234);
-
 
   // Initialisation du WebSocket avec des callbacks pour la signalisation d'appel
   const { socket, sendCallInvitation, handleConnect, handleDeny } = useWebSocket(
-    port.toString(),
     setUsers,
     setMyID,
     setModalOpen,
@@ -31,9 +28,6 @@ export default function Home() {
     setCallerIdForCall,
     setCallData
   );
-  useEffect(() => {
-    setPort(Number(process.env.NEXT_PUBLIC_PORT!));
-  }, []);
 
   // Pour le caller : quand on clique sur "Appeler", on envoie une invitation
   const handleConnectRequest = (receiverId: string) => {

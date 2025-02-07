@@ -8,7 +8,6 @@ export interface User {
 }
 
 const useWebSocket = (
-  port: string,
   setUsers: React.Dispatch<React.SetStateAction<User[]>>,
   setMyID: React.Dispatch<React.SetStateAction<string>>,
   setModalOpen: React.Dispatch<React.SetStateAction<boolean>>,
@@ -34,11 +33,11 @@ const useWebSocket = (
 
   useEffect(() => {
     const newSocket = new WebSocket(
-      `wss://eliott.bouquerel.caen.mds-project.fr:${port}`
+      `wss://eliott.bouquerel.caen.mds-project.fr:7864`
     );
     setSocket(newSocket);
     return () => newSocket.close();
-  }, [port]);
+  }, []);
 
   const handleConnect = (userId: string, myID: string) => {
     safeSend({
