@@ -34,6 +34,7 @@ const sslOptions = {
     "utf8"
   ),
 };
+console.log(sslOptions);
 
 // Create a WebSocket server
 const server = https.createServer(sslOptions, app);
