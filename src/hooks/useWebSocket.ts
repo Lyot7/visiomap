@@ -7,7 +7,7 @@ export interface User {
   coordinates: { lat: number; lng: number };
 }
 
-export const useWebSocket = (
+const useWebSocket = (
   port: string,
   setUsers: React.Dispatch<React.SetStateAction<User[]>>,
   setMyID: React.Dispatch<React.SetStateAction<string>>,
