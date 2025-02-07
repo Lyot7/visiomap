@@ -134,7 +134,7 @@ wss.on("connection", (client) => {
         break;
       }
       case "deny":
-        // Implement call denial logic here if needed.
+        console.log("deny");
         break;
       default:
         break;
