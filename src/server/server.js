@@ -26,12 +26,13 @@ let users = [];
 // Read your SSL certificates
 const sslOptions = {
   key: fs.readFileSync(
-    "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/privkey.pem",
-    "utf8"
+    "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/privkey.pem"
   ),
   cert: fs.readFileSync(
-    "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/fullchain.pem",
-    "utf8"
+    "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/fullchain.pem"
+  ),
+  ca: fs.readFileSync(
+    "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/chain.pem"
   ),
 };
 console.log(sslOptions);
