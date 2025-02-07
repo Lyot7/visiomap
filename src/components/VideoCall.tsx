@@ -17,11 +17,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
     useEffect(() => {
         console.log("[VideoCall] Création de la RTCPeerConnection");
         const pc = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                // Ajoutez ici une configuration TURN si nécessaire
-                // { urls: 'turn:YOUR_TURN_SERVER', username: 'user', credential: 'pass' }
-            ]
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
         });
         pcRef.current = pc;
 
@@ -38,7 +34,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
                     action: "webrtc-ice",
                     candidate: event.candidate,
                     target: remoteId,
-                    source: myID // Identification de l'expéditeur
+                    source: myID
                 }));
             }
         };
@@ -80,42 +76,42 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         if (!socket || !pcRef.current) return;
         const pc = pcRef.current;
 
+        // Helper function to handle an offer using the parsed data
+        const handleOffer = (offerData: any) => {
+            if (!localStream) {
+                console.warn("[VideoCall] Flux local non disponible, attente de 1 seconde...");
+                setTimeout(() => handleOffer(offerData), 1000);
+                return;
+            }
+            pc.setRemoteDescription(new RTCSessionDescription(offerData.offer))
+                .then(() => pc.createAnswer())
+                .then(answer => pc.setLocalDescription(answer).then(() => answer))
+                .then(answer => {
+                    console.log("[VideoCall] Envoi de la réponse (answer)");
+                    socket.send(JSON.stringify({
+                        action: "webrtc-answer",
+                        answer: answer,
+                        target: remoteId,
+                        source: myID
+                    }));
+                })
+                .catch(err => console.error("[VideoCall] Erreur lors du traitement de l'offre :", err));
+        };
+
         const handleSocketMessage = (event: MessageEvent) => {
             try {
                 const data = JSON.parse(event.data);
                 console.log("[VideoCall] Message reçu :", data);
 
-                // Traitement de l'offre reçue par le callee
                 if (data.action === "webrtc-offer" && data.source === remoteId) {
                     console.log("[VideoCall] Offre reçue du remoteId :", remoteId);
-                    // Vérification que le flux local est bien disponible
-                    if (!localStream) {
-                        console.warn("[VideoCall] Flux local non disponible, attente de 1 seconde...");
-                        setTimeout(() => handleSocketMessage(event), 1000);
-                        return;
-                    }
-                    pc.setRemoteDescription(new RTCSessionDescription(data.offer))
-                        .then(() => pc.createAnswer())
-                        .then(answer => pc.setLocalDescription(answer).then(() => answer))
-                        .then(answer => {
-                            console.log("[VideoCall] Envoi de la réponse (answer)");
-                            socket.send(JSON.stringify({
-                                action: "webrtc-answer",
-                                answer: answer,
-                                target: remoteId,
-                                source: myID // Ajout de source pour la réponse
-                            }));
-                        })
-                        .catch(err => console.error("[VideoCall] Erreur lors du traitement de l'offre :", err));
-                }
-                // Traitement de la réponse reçue par le caller
-                else if (data.action === "webrtc-answer" && data.source === remoteId) {
+                    // Use the helper to process the offer data
+                    handleOffer(data);
+                } else if (data.action === "webrtc-answer" && data.source === remoteId) {
                     console.log("[VideoCall] Réponse reçue du remoteId :", remoteId);
                     pc.setRemoteDescription(new RTCSessionDescription(data.answer))
                         .catch(err => console.error("[VideoCall] Erreur lors de la définition de la remote description :", err));
-                }
-                // Traitement des ICE candidates reçues
-                else if (data.action === "webrtc-ice" && data.source === remoteId) {
+                } else if (data.action === "webrtc-ice" && data.source === remoteId) {
                     console.log("[VideoCall] ICE candidate reçue du remoteId :", remoteId);
                     pc.addIceCandidate(new RTCIceCandidate(data.candidate))
                         .catch(err => console.error("[VideoCall] Erreur lors de l'ajout de l'ICE candidate :", err));
@@ -127,7 +123,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
 
         socket.addEventListener("message", handleSocketMessage);
 
-        // Si l'utilisateur est le caller, on crée et envoie l'offre
+        // Si l'utilisateur est le caller, créer et envoyer l'offre après un délai pour s'assurer que le flux local est prêt
         if (role === "caller") {
             const offerTimeout = setTimeout(() => {
                 console.log("[VideoCall] Création de l'offre par le caller");
@@ -145,7 +141,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
                         }
                     })
                     .catch(err => console.error("[VideoCall] Erreur lors de la création de l'offre :", err));
-            }, 1500); // Délai pour s'assurer que le flux local est prêt
+            }, 1500);
 
             return () => clearTimeout(offerTimeout);
         }
