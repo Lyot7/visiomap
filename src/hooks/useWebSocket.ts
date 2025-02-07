@@ -53,10 +53,6 @@ export const useWebSocket = (
     }
   };
 
-  const handleAccept = (recieverId: string, myID: string) => {
-    handleConnect(recieverId, myID);
-  };
-
   const handleDeny = () => {
     if (socket) {
       socket.send(JSON.stringify({ action: "deny" }));
@@ -135,7 +131,6 @@ export const useWebSocket = (
     socket,
     handleConnect,
     sendCallInvitation,
-    handleAccept,
     handleDeny,
   };
 };

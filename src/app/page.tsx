@@ -19,7 +19,7 @@ export default function Home() {
     // console.log(users);
   }, [users]);
 
-  const { sendCallInvitation, handleAccept, handleDeny } = useWebSocket(process.env.NEXT_PUBLIC_PORT!, setUsers, setMyID, setModalOpen, setCallerName);
+  const { sendCallInvitation, handleConnect, handleDeny } = useWebSocket(process.env.NEXT_PUBLIC_PORT!, setUsers, setMyID, setModalOpen, setCallerName);
 
   const handleConnectRequest = (receiverId: number) => {
     console.log(`Calling user ${receiverId} from user ${myID}`);
@@ -32,7 +32,7 @@ export default function Home() {
       <CallInvitationModal isModalOpen={isModalOpen}
         onAccept={() => {
           console.log('Call accepted');
-          handleAccept(receiverId.toString(), myID.toString());
+          handleConnect(receiverId.toString(), myID.toString());
           setModalOpen(false);
         }}
         onDeny={() => {

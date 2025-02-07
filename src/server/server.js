@@ -74,6 +74,11 @@ wss.on("connection", (ws) => {
           );
         }
         break;
+      case "connect":
+        const userId = data.userId;
+        const myID = data.myID;
+        handleConnect(userId, myID);
+        break;
       default:
     }
   });
@@ -84,6 +89,8 @@ wss.on("connection", (ws) => {
     users = users.filter((user) => user.id !== userId);
   });
 });
+
+handleConnect = (userId, myID) => {};
 
 server.listen(PORT, () => {
   console.log(`Server is running on port : ${PORT}`);
