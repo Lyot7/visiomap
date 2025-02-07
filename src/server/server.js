@@ -3,7 +3,7 @@ import bodyParser from "body-parser";
 import { WebSocketServer } from "ws";
 import cors from "cors";
 import { v4 as uuidv4 } from "uuid";
-import http from "http";
+import https from "https";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -23,7 +23,7 @@ app.get("/", (req, res) => {
 let users = [];
 
 // Create a WebSocket server
-const server = http.createServer(app);
+const server = https.createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
