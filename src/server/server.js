@@ -27,18 +27,18 @@ const server = https.createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
-wss.on("connection", (ws) => {
+wss.on("connection", (wss) => {
   const userId = uuidv4();
-  ws.userId = userId;
+  wss.userId = userId;
 
-  ws.send(
+  wss.send(
     JSON.stringify({
       type: "userID",
       id: userId,
     })
   );
 
-  ws.on("message", (message) => {
+  wss.on("message", (message) => {
     const data = JSON.parse(message);
 
     if (data.type === "connection") {
@@ -54,7 +54,7 @@ wss.on("connection", (ws) => {
 
     switch (data.action) {
       case "get-users":
-        ws.send(JSON.stringify({ type: "users", users }));
+        wss.send(JSON.stringify({ type: "users", users }));
         break;
       case "call-invitation":
         {
@@ -65,7 +65,7 @@ wss.on("connection", (ws) => {
           );
           const callerName = data.callerName;
           console.log("recipient : ", recipient);
-          if (recipient && recipient.readyState === ws.OPEN) {
+          if (recipient && recipient.readyState === wss.OPEN) {
             recipient.send(
               JSON.stringify({
                 type: "call-invitation",
@@ -83,7 +83,7 @@ wss.on("connection", (ws) => {
           const targetSocket = [...wss.clients].find(
             (client) => client.userId === data.userId.toString()
           );
-          if (targetSocket && targetSocket.readyState === ws.OPEN) {
+          if (targetSocket && targetSocket.readyState === wss.OPEN) {
             targetSocket.send(
               JSON.stringify({
                 type: "call-accepted",
@@ -99,9 +99,9 @@ wss.on("connection", (ws) => {
           const targetSocket = [...wss.clients].find(
             (client) => client.userId === data.target.toString()
           );
-          if (targetSocket && targetSocket.readyState === ws.OPEN) {
+          if (targetSocket && targetSocket.readyState === wss.OPEN) {
             // On ajoute l'ID de l'expéditeur pour que le pair sache d'où vient l'offre
-            data.source = ws.userId;
+            data.source = wss.userId;
             targetSocket.send(JSON.stringify(data));
           }
         }
@@ -111,8 +111,8 @@ wss.on("connection", (ws) => {
           const targetSocket = [...wss.clients].find(
             (client) => client.userId === data.target.toString()
           );
-          if (targetSocket && targetSocket.readyState === ws.OPEN) {
-            data.source = ws.userId;
+          if (targetSocket && targetSocket.readyState === wss.OPEN) {
+            data.source = wss.userId;
             targetSocket.send(JSON.stringify(data));
           }
         }
@@ -122,8 +122,8 @@ wss.on("connection", (ws) => {
           const targetSocket = [...wss.clients].find(
             (client) => client.userId === data.target.toString()
           );
-          if (targetSocket && targetSocket.readyState === ws.OPEN) {
-            data.source = ws.userId;
+          if (targetSocket && targetSocket.readyState === wss.OPEN) {
+            data.source = wss.userId;
             targetSocket.send(JSON.stringify(data));
           }
         }
@@ -136,7 +136,7 @@ wss.on("connection", (ws) => {
     }
   });
 
-  ws.on("close", () => {
+  wss.on("close", () => {
     console.log("Client disconnected");
     // Retirer l'utilisateur déconnecté
     users = users.filter((user) => user.id !== userId);

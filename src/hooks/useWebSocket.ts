@@ -21,7 +21,9 @@ export const useWebSocket = (
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
   useEffect(() => {
-    const newSocket = new WebSocket(`ws://${window.location.hostname}:${port}`);
+    const newSocket = new WebSocket(
+      `wss://${window.location.hostname}:${port}`
+    );
     setSocket(newSocket);
     return () => newSocket.close();
   }, [port]);
