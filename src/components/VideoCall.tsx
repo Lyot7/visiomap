@@ -33,138 +33,158 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
 
-    // Use a ref for the local media stream for a stable reference
+    // Use refs for a stable, non-reactive reference.
     const localStreamRef = useRef<MediaStream | null>(null);
+    // This ref holds an offer if it arrives before the local stream is ready.
+    const pendingOfferRef = useRef<WebRTCOfferMessage | null>(null);
 
-    // Create and configure the RTCPeerConnection and getUserMedia.
+    // Create the RTCPeerConnection and obtain local media.
     useEffect(() => {
-        console.log("[VideoCall] Création de la RTCPeerConnection");
+        console.log("[VideoCall] Creating RTCPeerConnection");
         const pc = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
         });
         pcRef.current = pc;
 
-        // Monitor the connection state.
         pc.onconnectionstatechange = () => {
-            console.log("[VideoCall] État de la connexion :", pc.connectionState);
+            console.log("[VideoCall] Connection state:", pc.connectionState);
         };
 
-        // Handle ICE candidates.
         pc.onicecandidate = event => {
             if (event.candidate) {
-                console.log("[VideoCall] Envoi d'une ICE candidate", event.candidate);
-                socket.send(JSON.stringify({
-                    action: "webrtc-ice",
-                    candidate: event.candidate,
-                    target: remoteId,
-                    source: myID
-                }));
+                console.log("[VideoCall] Sending ICE candidate", event.candidate);
+                socket.send(
+                    JSON.stringify({
+                        action: "webrtc-ice",
+                        candidate: event.candidate,
+                        target: remoteId,
+                        source: myID,
+                    })
+                );
             }
         };
 
-        // When a remote track is received, assign it to the remote video element.
         pc.ontrack = event => {
-            console.log("[VideoCall] Piste distante reçue", event.streams);
+            console.log("[VideoCall] Remote track received", event.streams);
             if (remoteVideoRef.current && event.streams && event.streams[0]) {
                 remoteVideoRef.current.srcObject = event.streams[0];
             }
         };
 
-        // Get the local media stream.
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
-                console.log("[VideoCall] Flux local obtenu");
+        // Get local media and then check for any pending offer.
+        navigator.mediaDevices
+            .getUserMedia({ video: true, audio: true })
+            .then((stream) => {
+                console.log("[VideoCall] Local stream obtained");
                 localStreamRef.current = stream;
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = stream;
                 }
-                // Add local tracks to the PeerConnection.
-                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+                stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+                // If an offer came in before the stream was ready, process it now.
+                if (pendingOfferRef.current) {
+                    handleOffer(pendingOfferRef.current);
+                    pendingOfferRef.current = null;
+                }
             })
-            .catch(error => {
-                console.error("[VideoCall] Erreur lors de l'accès aux médias", error);
+            .catch((error) => {
+                console.error("[VideoCall] Error accessing local media", error);
             });
 
-        // Cleanup on unmount.
         return () => {
-            console.log("[VideoCall] Fermeture de la connexion");
+            console.log("[VideoCall] Closing connection");
             pc.close();
             if (localStreamRef.current) {
-                localStreamRef.current.getTracks().forEach(track => track.stop());
+                localStreamRef.current.getTracks().forEach((track) => track.stop());
             }
         };
     }, [socket, remoteId, myID]);
 
-    // Set up the WebSocket message handling.
+    // Helper to process an incoming offer.
+    const handleOffer = (offerData: WebRTCOfferMessage): void => {
+        if (!pcRef.current) return;
+        const pc = pcRef.current;
+        pc.setRemoteDescription(new RTCSessionDescription(offerData.offer))
+            .then(() => pc.createAnswer())
+            .then((answer) => pc.setLocalDescription(answer).then(() => answer))
+            .then((answer) => {
+                console.log("[VideoCall] Sending answer");
+                socket.send(
+                    JSON.stringify({
+                        action: "webrtc-answer",
+                        answer: answer,
+                        target: remoteId,
+                        source: myID,
+                    })
+                );
+            })
+            .catch((err) =>
+                console.error("[VideoCall] Error handling offer:", err)
+            );
+    };
+
+    // WebSocket message handler.
     useEffect(() => {
         if (!socket || !pcRef.current) return;
         const pc = pcRef.current;
 
-        // Helper to handle an offer.
-        const handleOffer = (offerData: WebRTCOfferMessage): void => {
-            if (!localStreamRef.current) {
-                console.warn("[VideoCall] Flux local non disponible, attente de 1 seconde...");
-                setTimeout(() => handleOffer(offerData), 1000);
-                return;
-            }
-            pc.setRemoteDescription(new RTCSessionDescription(offerData.offer))
-                .then(() => pc.createAnswer())
-                .then(answer => pc.setLocalDescription(answer).then(() => answer))
-                .then(answer => {
-                    console.log("[VideoCall] Envoi de la réponse (answer)");
-                    socket.send(JSON.stringify({
-                        action: "webrtc-answer",
-                        answer: answer,
-                        target: remoteId,
-                        source: myID
-                    }));
-                })
-                .catch(err => console.error("[VideoCall] Erreur lors du traitement de l'offre :", err));
-        };
-
-        // Message handler for WebSocket events.
         const handleSocketMessage = (event: MessageEvent) => {
             try {
                 const data = JSON.parse(event.data) as WebRTCMessage;
-                console.log("[VideoCall] Message reçu :", data);
-
+                console.log("[VideoCall] Message received:", data);
                 if (data.action === "webrtc-offer" && data.source === remoteId) {
-                    console.log("[VideoCall] Offre reçue du remoteId :", remoteId);
-                    handleOffer(data);
+                    console.log("[VideoCall] Offer received from remoteId:", remoteId);
+                    if (!localStreamRef.current) {
+                        console.warn(
+                            "[VideoCall] Local stream not available, storing pending offer"
+                        );
+                        pendingOfferRef.current = data;
+                    } else {
+                        handleOffer(data);
+                    }
                 } else if (data.action === "webrtc-answer" && data.source === remoteId) {
-                    console.log("[VideoCall] Réponse reçue du remoteId :", remoteId);
-                    pc.setRemoteDescription(new RTCSessionDescription(data.answer))
-                        .catch(err => console.error("[VideoCall] Erreur lors de la définition de la remote description :", err));
+                    console.log("[VideoCall] Answer received from remoteId:", remoteId);
+                    pc.setRemoteDescription(new RTCSessionDescription(data.answer)).catch(
+                        (err) =>
+                            console.error(
+                                "[VideoCall] Error setting remote description:",
+                                err
+                            )
+                    );
                 } else if (data.action === "webrtc-ice" && data.source === remoteId) {
-                    console.log("[VideoCall] ICE candidate reçue du remoteId :", remoteId);
-                    pc.addIceCandidate(new RTCIceCandidate(data.candidate))
-                        .catch(err => console.error("[VideoCall] Erreur lors de l'ajout de l'ICE candidate :", err));
+                    console.log("[VideoCall] ICE candidate received from remoteId:", remoteId);
+                    pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch((err) =>
+                        console.error("[VideoCall] Error adding ICE candidate:", err)
+                    );
                 }
             } catch (err) {
-                console.error("[VideoCall] Erreur lors du traitement du message WebSocket :", err);
+                console.error("[VideoCall] Error processing WebSocket message:", err);
             }
         };
 
         socket.addEventListener("message", handleSocketMessage);
 
-        // If the user is the caller, create and send the offer.
         if (role === "caller") {
             const offerTimeout = setTimeout(() => {
-                console.log("[VideoCall] Création de l'offre par le caller");
+                console.log("[VideoCall] Creating offer as caller");
                 pc.createOffer()
-                    .then(offer => pc.setLocalDescription(offer))
+                    .then((offer) => pc.setLocalDescription(offer))
                     .then(() => {
                         if (pc.localDescription) {
-                            console.log("[VideoCall] Envoi de l'offre au remoteId :", remoteId);
-                            socket.send(JSON.stringify({
-                                action: "webrtc-offer",
-                                offer: pc.localDescription,
-                                target: remoteId,
-                                source: myID
-                            }));
+                            console.log("[VideoCall] Sending offer to remoteId:", remoteId);
+                            socket.send(
+                                JSON.stringify({
+                                    action: "webrtc-offer",
+                                    offer: pc.localDescription,
+                                    target: remoteId,
+                                    source: myID,
+                                })
+                            );
                         }
                     })
-                    .catch(err => console.error("[VideoCall] Erreur lors de la création de l'offre :", err));
+                    .catch((err) =>
+                        console.error("[VideoCall] Error creating offer:", err)
+                    );
             }, 1500);
 
             return () => clearTimeout(offerTimeout);
@@ -181,11 +201,20 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
             <div className="flex gap-4">
                 <div>
                     <p>Votre vidéo :</p>
-                    <video ref={localVideoRef} autoPlay muted style={{ width: "200px", border: "1px solid #000" }} />
+                    <video
+                        ref={localVideoRef}
+                        autoPlay
+                        muted
+                        style={{ width: "200px", border: "1px solid #000" }}
+                    />
                 </div>
                 <div>
                     <p>Vidéo distante :</p>
-                    <video ref={remoteVideoRef} autoPlay style={{ width: "400px", border: "1px solid #000" }} />
+                    <video
+                        ref={remoteVideoRef}
+                        autoPlay
+                        style={{ width: "400px", border: "1px solid #000" }}
+                    />
                 </div>
             </div>
         </div>
