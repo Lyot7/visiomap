@@ -133,9 +133,10 @@ wss.on("connection", (client) => {
         }
         break;
       }
-      case "deny":
+      case "deny": {
         console.log("deny");
         break;
+      }
       default:
         break;
     }
