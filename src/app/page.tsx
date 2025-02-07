@@ -5,6 +5,7 @@ import VideoCall from '@/components/VideoCall';
 import React, { useState } from 'react';
 import dotenv from "dotenv";
 import useWebSocket, { User } from "@/hooks/useWebSocket";
+import { useEffect } from 'react';
 
 dotenv.config();
 
@@ -30,8 +31,9 @@ export default function Home() {
     setCallerIdForCall,
     setCallData
   );
-
-  setPort(Number(process.env.NEXT_PUBLIC_PORT!));
+  useEffect(() => {
+    setPort(Number(process.env.NEXT_PUBLIC_PORT!));
+  }, []);
 
   // Pour le caller : quand on clique sur "Appeler", on envoie une invitation
   const handleConnectRequest = (receiverId: string) => {
