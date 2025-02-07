@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export interface User {
   id: number;
@@ -20,14 +20,17 @@ export const useWebSocket = (
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
-  // Helper function that sends a message only when the socket is open.
-  const safeSend = (data: any) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(data));
-    } else {
-      console.warn("WebSocket is not open. Cannot send message:", data);
-    }
-  };
+  // Use a callback that sends data only when the WebSocket is open.
+  const safeSend = useCallback(
+    (data: Record<string, unknown>): void => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(data));
+      } else {
+        console.warn("WebSocket is not open. Cannot send message:", data);
+      }
+    },
+    [socket]
+  );
 
   useEffect(() => {
     const newSocket = new WebSocket(
@@ -110,7 +113,7 @@ export const useWebSocket = (
         );
       };
 
-      // Optional: Periodically request the list of users.
+      // Optionally, periodically request the list of users.
       const intervalId = setInterval(() => {
         safeSend({ action: "get-users" });
       }, 8000);
@@ -120,6 +123,7 @@ export const useWebSocket = (
   }, [
     socket,
     port,
+    safeSend,
     setUsers,
     setMyID,
     setModalOpen,
