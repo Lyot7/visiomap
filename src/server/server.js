@@ -1,7 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
 import { WebSocketServer, WebSocket } from "ws";
-import cors from "cors";
 import { v4 as uuidv4 } from "uuid";
 import https from "https";
 import fs from "fs";
