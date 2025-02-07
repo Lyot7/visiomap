@@ -4,7 +4,6 @@ import { WebSocketServer } from "ws";
 import cors from "cors";
 import { v4 as uuidv4 } from "uuid";
 import http from "http";
-
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -25,7 +24,6 @@ let users = [];
 
 // Create a WebSocket server
 const server = http.createServer(app);
-
 const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
@@ -42,55 +40,108 @@ wss.on("connection", (ws) => {
 
   ws.on("message", (message) => {
     const data = JSON.parse(message);
+
     if (data.type === "connection") {
       const user = { id: userId, ...data };
       users.push(user);
+      // Diffuse la nouvelle liste d'utilisateurs à tous les clients
       wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
+        if (client.readyState === ws.OPEN) {
           client.send(JSON.stringify({ type: "newUser", users }));
         }
       });
     }
+
     switch (data.action) {
       case "get-users":
         ws.send(JSON.stringify({ type: "users", users }));
         break;
       case "call-invitation":
-        const callerId = data.callerId;
-        const recieverId = data.recieverId;
-        const recipient = [...wss.clients].find(
-          (client) => client.userId === recieverId.toString()
-        );
-        const callerName = data.callerName;
-        console.log("recipient : ", recipient);
-        if (recipient) {
-          recipient.send(
-            JSON.stringify({
-              type: "call-invitation",
-              callerId: callerId,
-              recieverId: recieverId,
-              callerName: callerName,
-            })
+        {
+          const callerId = data.callerId.toString();
+          const recieverId = data.recieverId.toString();
+          const recipient = [...wss.clients].find(
+            (client) => client.userId === recieverId
           );
+          const callerName = data.callerName;
+          console.log("recipient : ", recipient);
+          if (recipient && recipient.readyState === ws.OPEN) {
+            recipient.send(
+              JSON.stringify({
+                type: "call-invitation",
+                callerId: callerId,
+                callerName: callerName,
+              })
+            );
+          }
         }
         break;
       case "connect":
-        const userId = data.userId;
-        const myID = data.myID;
-        handleConnect(userId, myID);
+        {
+          // Le callee notifie qu'il accepte l'appel
+          // On récupère le caller via l'ID contenu dans data.userId
+          const targetSocket = [...wss.clients].find(
+            (client) => client.userId === data.userId.toString()
+          );
+          if (targetSocket && targetSocket.readyState === ws.OPEN) {
+            targetSocket.send(
+              JSON.stringify({
+                type: "call-accepted",
+                from: data.myID, // L'ID du callee
+              })
+            );
+          }
+        }
+        break;
+      // Messages de signalisation WebRTC
+      case "webrtc-offer":
+        {
+          const targetSocket = [...wss.clients].find(
+            (client) => client.userId === data.target.toString()
+          );
+          if (targetSocket && targetSocket.readyState === ws.OPEN) {
+            // On ajoute l'ID de l'expéditeur pour que le pair sache d'où vient l'offre
+            data.source = ws.userId;
+            targetSocket.send(JSON.stringify(data));
+          }
+        }
+        break;
+      case "webrtc-answer":
+        {
+          const targetSocket = [...wss.clients].find(
+            (client) => client.userId === data.target.toString()
+          );
+          if (targetSocket && targetSocket.readyState === ws.OPEN) {
+            data.source = ws.userId;
+            targetSocket.send(JSON.stringify(data));
+          }
+        }
+        break;
+      case "webrtc-ice":
+        {
+          const targetSocket = [...wss.clients].find(
+            (client) => client.userId === data.target.toString()
+          );
+          if (targetSocket && targetSocket.readyState === ws.OPEN) {
+            data.source = ws.userId;
+            targetSocket.send(JSON.stringify(data));
+          }
+        }
+        break;
+      case "deny":
+        // Vous pouvez implémenter la logique de refus d'appel ici
         break;
       default:
+        break;
     }
   });
 
   ws.on("close", () => {
     console.log("Client disconnected");
-    // remove the user from the users array when they disconnect
+    // Retirer l'utilisateur déconnecté
     users = users.filter((user) => user.id !== userId);
   });
 });
-
-handleConnect = (userId, myID) => {};
 
 server.listen(PORT, () => {
   console.log(`Server is running on port : ${PORT}`);

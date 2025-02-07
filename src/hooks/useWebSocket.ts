@@ -10,9 +10,13 @@ export interface User {
 export const useWebSocket = (
   port: string,
   setUsers: React.Dispatch<React.SetStateAction<User[]>>,
-  setMyID: React.Dispatch<React.SetStateAction<number>>,
+  setMyID: React.Dispatch<React.SetStateAction<string>>,
   setModalOpen: React.Dispatch<React.SetStateAction<boolean>>,
-  setCallerName: React.Dispatch<React.SetStateAction<string>>
+  setCallerName: React.Dispatch<React.SetStateAction<string>>,
+  setCallerIdForCall: React.Dispatch<React.SetStateAction<string>>,
+  setCallData: React.Dispatch<
+    React.SetStateAction<{ role: "caller" | "callee"; remoteId: string } | null>
+  >
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
@@ -35,19 +39,18 @@ export const useWebSocket = (
   };
 
   const sendCallInvitation = (
-    callerId: number,
-    recieverId: number,
+    callerId: string,
+    recieverId: string,
     users: User[]
   ) => {
     if (socket) {
-      const caller = users.find((user) => user.id == callerId);
-
+      const caller = users.find((user) => user.id.toString() === callerId);
       socket.send(
         JSON.stringify({
           action: "call-invitation",
           callerId: callerId,
           recieverId: recieverId,
-          callerName: caller ? caller.name.toString() : "Quelqu'un",
+          callerName: caller ? caller.name : "Quelqu'un",
         })
       );
     }
@@ -62,7 +65,7 @@ export const useWebSocket = (
   useEffect(() => {
     if (socket) {
       socket.onopen = () => {
-        let userId = 1234;
+        let userId = "";
         socket.onmessage = (event) => {
           const data = JSON.parse(event.data);
           if (data.type === "userID") {
@@ -73,25 +76,22 @@ export const useWebSocket = (
           } else if (data.type === "call-invitation") {
             console.log(`Received call invitation from ${data.callerId}`);
             setCallerName(data.callerName);
+            setCallerIdForCall(data.callerId);
             setModalOpen(true);
           } else if (data.type === "call-accepted") {
-            console.log(`Call with ${data.from} has been accepted`);
-          } else if (data.type === "call-rejected") {
-            console.log(`Call with ${data.from} has been rejected`);
+            console.log(`Call accepted by ${data.from}`);
+            // Le caller reçoit la confirmation et démarre la visio
+            setCallData({ role: "caller", remoteId: data.from });
           }
         };
+
         const name = prompt("Donne moi ton p'tit nom") || "Anonymous";
-        const coordinates = {
-          lat: 0,
-          lng: 0,
-        };
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const coordinates = {
               lat: position.coords.latitude,
               lng: position.coords.longitude,
             };
-
             socket.send(
               JSON.stringify({
                 type: "connection",
@@ -102,7 +102,6 @@ export const useWebSocket = (
           },
           () => {
             console.log("Failed to get user's location");
-
             socket.send(
               JSON.stringify({
                 type: "connection",
@@ -112,20 +111,25 @@ export const useWebSocket = (
             );
           }
         );
-
-        const user: User = {
-          id: userId,
-          name: name,
-          coordinates: coordinates,
-        };
-        setUsers((prevState) => [...prevState, user]);
       };
 
-      setInterval(() => {
-        socket.send(JSON.stringify({ type: "getUsers" }));
+      // Optionnel : demande périodique de la liste des utilisateurs
+      const intervalId = setInterval(() => {
+        socket.send(JSON.stringify({ action: "get-users" }));
       }, 8000);
+
+      return () => clearInterval(intervalId);
     }
-  }, [socket, port, setUsers]);
+  }, [
+    socket,
+    port,
+    setUsers,
+    setMyID,
+    setModalOpen,
+    setCallerName,
+    setCallerIdForCall,
+    setCallData,
+  ]);
 
   return {
     socket,
