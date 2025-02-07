@@ -14,19 +14,18 @@ export default function Home() {
   const [myID, setMyID] = useState<number>(0);
   const [isModalOpen, setModalOpen] = useState(false);
   const [receiverId, setReceiverId] = useState<number>(0);
+  const [callerName, setCallerName] = useState<string>("Quelqu'un");
   useEffect(() => {
     // console.log(users);
   }, [users]);
 
-  const { sendCallInvitation, handleAccept, handleDeny } = useWebSocket(process.env.NEXT_PUBLIC_PORT!, setUsers, setMyID, setModalOpen);
+  const { sendCallInvitation, handleAccept, handleDeny } = useWebSocket(process.env.NEXT_PUBLIC_PORT!, setUsers, setMyID, setModalOpen, setCallerName);
 
   const handleConnectRequest = (receiverId: number) => {
     console.log(`Calling user ${receiverId} from user ${myID}`);
     setReceiverId(receiverId);
-    sendCallInvitation(myID, receiverId);
+    sendCallInvitation(myID, receiverId, users);
   };
-
-  const callerName = users.find((user) => user.id === myID)?.name || "Quelqu'un";
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">

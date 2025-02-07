@@ -58,14 +58,10 @@ wss.on("connection", (ws) => {
       case "call-invitation":
         const callerId = data.callerId;
         const recieverId = data.recieverId;
-        console.log("callerId : ", callerId, " recieverId : ", recieverId);
         const recipient = [...wss.clients].find(
           (client) => client.userId === recieverId.toString()
         );
-        console.log(
-          "Connected clients:",
-          [...wss.clients].map((client) => client.userId)
-        );
+        const callerName = data.callerName;
         console.log("recipient : ", recipient);
         if (recipient) {
           recipient.send(
@@ -73,6 +69,7 @@ wss.on("connection", (ws) => {
               type: "call-invitation",
               callerId: callerId,
               recieverId: recieverId,
+              callerName: callerName,
             })
           );
         }

@@ -11,7 +11,8 @@ export const useWebSocket = (
   port: string,
   setUsers: React.Dispatch<React.SetStateAction<User[]>>,
   setMyID: React.Dispatch<React.SetStateAction<number>>,
-  setModalOpen: React.Dispatch<React.SetStateAction<boolean>>
+  setModalOpen: React.Dispatch<React.SetStateAction<boolean>>,
+  setCallerName: React.Dispatch<React.SetStateAction<string>>
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
@@ -33,13 +34,20 @@ export const useWebSocket = (
     }
   };
 
-  const sendCallInvitation = (callerId: number, recieverId: number) => {
+  const sendCallInvitation = (
+    callerId: number,
+    recieverId: number,
+    users: User[]
+  ) => {
     if (socket) {
+      const caller = users.find((user) => user.id == callerId);
+
       socket.send(
         JSON.stringify({
           action: "call-invitation",
           callerId: callerId,
           recieverId: recieverId,
+          callerName: caller ? caller.name.toString() : "Quelqu'un",
         })
       );
     }
@@ -68,15 +76,12 @@ export const useWebSocket = (
             setUsers(data.users);
           } else if (data.type === "call-invitation") {
             console.log(`Received call invitation from ${data.callerId}`);
+            setCallerName(data.callerName);
             setModalOpen(true);
-          } else if (data.type === "invitation-sent") {
-            console.log("Invitation sent");
           } else if (data.type === "call-accepted") {
             console.log(`Call with ${data.from} has been accepted`);
           } else if (data.type === "call-rejected") {
             console.log(`Call with ${data.from} has been rejected`);
-          } else if (data.type === "error") {
-            console.log(data.message);
           }
         };
         const name = prompt("Donne moi ton p'tit nom") || "Anonymous";
