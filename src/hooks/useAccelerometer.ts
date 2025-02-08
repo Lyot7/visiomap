@@ -9,21 +9,27 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
   const requestAccelerometerPermission = async () => {
     try {
-      const DeviceMotionEvent = window.DeviceMotionEvent as unknown as {
-        requestPermission?: () => Promise<PermissionState>;
-      };
+      // Extend the DeviceMotionEvent type to include requestPermission
+      const DeviceMotionEvent =
+        window.DeviceMotionEvent as typeof globalThis.DeviceMotionEvent & {
+          requestPermission?: () => Promise<PermissionState>;
+        };
 
-      if (typeof DeviceMotionEvent.requestPermission === "function") {
+      // Check if the Sensors API is available
+      if (
+        "DeviceMotionEvent" in window &&
+        typeof DeviceMotionEvent.requestPermission === "function"
+      ) {
         const permission = await DeviceMotionEvent.requestPermission();
         setPermissionStatus(permission);
         return permission;
       }
 
-      // Si pas besoin de permission (Android, etc.), on considère comme "granted"
+      // If permission is not needed (Android, etc.), consider as "granted"
       setPermissionStatus("granted");
       return "granted";
     } catch (error) {
-      console.error("Erreur lors de la demande de permission:", error);
+      console.error("Error requesting permission:", error);
       setPermissionStatus("denied");
       return "denied";
     }
