@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface User {
   id: number;
@@ -32,9 +32,7 @@ const useWebSocket = (
   );
 
   useEffect(() => {
-    const newSocket = new WebSocket(
-      `wss://eliott.bouquerel.caen.mds-project.fr/ws/`
-    );
+    const newSocket = new WebSocket(`wss://localhost/ws/`);
     setSocket(newSocket);
     return () => newSocket.close();
   }, []);
