@@ -17,6 +17,7 @@ export default function Home() {
   const [callerName, setCallerName] = useState<string>("Quelqu'un");
   // Une fois l'appel accepté, on enregistre le rôle et l'ID du pair
   const [callData, setCallData] = useState<{ role: "caller" | "callee"; remoteId: string } | null>(null);
+  const [isCallActive, setIsCallActive] = useState(false);
 
   // Initialisation du WebSocket avec des callbacks pour la signalisation d'appel
   const { socket, sendCallInvitation, handleConnect, handleDeny } = useWebSocket(
@@ -40,6 +41,7 @@ export default function Home() {
         const data = JSON.parse(event.data);
         if (data.type === "call-ended") {
           setCallData(null);
+          setIsCallActive(false);
         }
       };
     }
@@ -55,6 +57,7 @@ export default function Home() {
           handleConnect(callerIdForCall, myID);
           // Ici, on précise notre rôle de callee et l'ID du pair (l'appelant)
           setCallData({ role: "callee", remoteId: callerIdForCall });
+          setIsCallActive(true);
           setModalOpen(false);
         }}
         onDeny={() => {
@@ -94,13 +97,14 @@ export default function Home() {
       </section>
 
       {/* Dès qu'un appel est établi, on affiche la visio */}
-      {callData && socket && (
+      {callData && socket && isCallActive && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-80 flex items-center justify-center">
           <VideoCall
             socket={socket}
             myID={myID}
             remoteId={callData.remoteId}
             role={callData.role}
+            onHangup={() => setIsCallActive(false)}
           />
         </div>
       )}
