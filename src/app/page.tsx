@@ -20,7 +20,7 @@ export default function Home() {
   const [callData, setCallData] = useState<{ role: "caller" | "callee"; remoteId: string } | null>(null);
 
   // Initialisation du WebSocket avec des callbacks pour la signalisation d'appel
-  const { socket, sendCallInvitation, handleConnect, handleDeny, sendSpeed } = useWebSocket(
+  const { socket, sendCallInvitation, handleConnect, handleDeny, sendSpeed, safeSend } = useWebSocket(
     setUsers,
     setMyID,
     setModalOpen,
@@ -41,11 +41,36 @@ export default function Home() {
   }, []);
 
   const handleSpeedChange = useCallback((speed: number) => {
+    // Send speed immediately when it changes
     sendSpeed(speed);
   }, [sendSpeed]);
 
-  // Capture accelerometer values from the hook for UI display
+  // Capture accelerometer values from the hook for both UI display and update
   const { speed, isSupported, permissionStatus, requestPermission } = useAccelerometer(handleSpeedChange);
+
+  // Send the current accelerometer data (even if speed is 0) to update the user on the server.
+  useEffect(() => {
+    if (socket) {
+      console.log("Sending connection update with accelerometer data:", { speed, isSupported, permissionStatus });
+      safeSend({
+        type: "connection-update",
+        speed,
+        isSupported,
+        permissionStatus,
+      });
+    }
+  }, [socket, speed, isSupported, permissionStatus, safeSend]);
+
+  // Also, in case motion events do not fire, send the speed regularly.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (socket) {
+        console.log("Regularly sending speed update:", speed);
+        sendSpeed(speed);
+      }
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [socket, speed, sendSpeed]);
 
   useEffect(() => {
     if (socket) {

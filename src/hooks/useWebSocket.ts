@@ -6,6 +6,8 @@ export interface User {
   name: string;
   coordinates: { lat: number; lng: number };
   speed?: number;
+  isSupported?: boolean;
+  permissionStatus?: PermissionState | string;
 }
 
 const useWebSocket = (
@@ -178,6 +180,7 @@ const useWebSocket = (
     sendCallInvitation,
     handleDeny,
     sendSpeed,
+    safeSend,
   };
 };
 

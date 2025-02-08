@@ -55,7 +55,7 @@ wss.on("connection", (client) => {
     }
 
     // Process actions based on data.action
-    switch (data.action) {
+    switch (data.action || data.type) {
       case "get-users":
         console.log("Sending user list to client.");
         client.send(JSON.stringify({ type: "users", users }));
@@ -155,6 +155,25 @@ wss.on("connection", (client) => {
             if (c.readyState === WebSocket.OPEN) {
               c.send(JSON.stringify({ type: "newUser", users }));
               console.log("Updated users:", users);
+            }
+          });
+        }
+        break;
+      }
+      case "connection-update": {
+        const userIndex = users.findIndex((u) => u.id === client.userId);
+        if (userIndex !== -1) {
+          users[userIndex] = {
+            ...users[userIndex],
+            speed: data.speed,
+            isSupported: data.isSupported,
+            permissionStatus: data.permissionStatus,
+          };
+          console.log("User updated with connection-update:", users[userIndex]);
+          // Broadcast the updated user list to all clients
+          wss.clients.forEach((c) => {
+            if (c.readyState === WebSocket.OPEN) {
+              c.send(JSON.stringify({ type: "newUser", users }));
             }
           });
         }
