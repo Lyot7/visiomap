@@ -73,7 +73,7 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
     };
 
     initializeAccelerometer();
-  }, []);
+  }, [onSpeedChange]);
 
   return {
     speed,
