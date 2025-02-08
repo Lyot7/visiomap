@@ -2,7 +2,7 @@
 import Map from "@/components/Map";
 import CallInvitationModal from '@/components/CallInvitationModal';
 import VideoCall from '@/components/VideoCall';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dotenv from "dotenv";
 import useWebSocket, { User } from "@/hooks/useWebSocket";
 
@@ -33,6 +33,17 @@ export default function Home() {
     console.log(`Calling user ${receiverId} from user ${myID}`);
     sendCallInvitation(myID, receiverId, users);
   };
+
+  useEffect(() => {
+    if (socket) {
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "call-ended") {
+          setCallData(null);
+        }
+      };
+    }
+  }, [socket]);
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">

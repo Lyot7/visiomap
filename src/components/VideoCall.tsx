@@ -223,9 +223,33 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         return () => socket.removeEventListener("message", handleSocketMessage);
     }, [socket, remoteId, myID, handleOffer]);
 
+    const handleHangup = useCallback(() => {
+        console.log("[VideoCall] Hanging up");
+        if (pcRef.current) {
+            pcRef.current.close();
+        }
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach(track => track.stop());
+        }
+        // Notify parent component to clean up call state
+        socket.send(JSON.stringify({
+            action: "hangup",
+            target: remoteId,
+            source: myID
+        }));
+    }, [socket, remoteId, myID]);
+
     return (
         <div className="video-call bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
-            <h2 className="text-xl mb-2">Appel en cours...</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl">Appel en cours...</h2>
+                <button
+                    onClick={handleHangup}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                >
+                    Raccrocher
+                </button>
+            </div>
             <div className="flex gap-4">
                 <div>
                     <p>Votre vidéo :</p>

@@ -129,6 +129,20 @@ wss.on("connection", (client) => {
         console.log("deny");
         break;
       }
+      case "hangup": {
+        const targetSocket = [...wss.clients].find(
+          (c) => c.userId === data.target.toString()
+        );
+        if (targetSocket && targetSocket.readyState === WebSocket.OPEN) {
+          targetSocket.send(
+            JSON.stringify({
+              type: "call-ended",
+              from: client.userId,
+            })
+          );
+        }
+        break;
+      }
       default:
         console.log("Unknown action:", data.action);
         break;
