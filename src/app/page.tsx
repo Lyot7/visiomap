@@ -98,7 +98,10 @@ export default function Home() {
                     </div>
                     <div className="text-xl">
                       <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
-                      <p>Vitesse: {user.speed?.toFixed(2) || '0.00'} m/s²</p>
+                      <p>Vitesse: {user.speed !== undefined ?
+                        `${user.speed.toFixed(2)} m/s²` :
+                        'Données de l\'accélérateur non disponibles sur cet appareil'
+                      }</p>
                     </div>
                   </div>
                 </li>
@@ -108,7 +111,10 @@ export default function Home() {
                     <h3 className="text-2xl mr-2">C&apos;est moi 😉</h3>
                     <div className="text-xl">
                       <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
-                      <p>Vitesse: {user.speed?.toFixed(2) || '0.00'} m/s²</p>
+                      <p>Vitesse: {user.speed !== undefined ?
+                        `${user.speed.toFixed(2)} m/s²` :
+                        'Données de l\'accélérateur non disponibles sur cet appareil'
+                      }</p>
                     </div>
                   </div>
                 </li>
