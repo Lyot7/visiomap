@@ -196,7 +196,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
     }, [socket, remoteId, role, myID, handleOffer]);
 
     return (
-        <div className="video-call bg-white p-4 rounded shadow-lg">
+        <div className="video-call bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
             <h2 className="text-xl mb-2">Appel en cours...</h2>
             <div className="flex gap-4">
                 <div>
