@@ -65,12 +65,18 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
     useEffect(() => {
         console.log("[VideoCall] Creating RTCPeerConnection");
         const pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+            ]
         });
         pcRef.current = pc;
 
         pc.onconnectionstatechange = () => {
-            console.log("[VideoCall] Connection state:", pc.connectionState);
+            console.log("[VideoCall] Connection State:", pc.connectionState);
         };
 
         pc.onicecandidate = event => {
@@ -88,13 +94,27 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         };
 
         pc.ontrack = event => {
-            console.log("[VideoCall] Remote track received", event.streams);
+            console.log("[VideoCall] Remote track received", event.streams[0]?.getTracks());
             if (remoteVideoRef.current && event.streams[0]) {
+                console.log("[VideoCall] Setting remote stream");
                 remoteVideoRef.current.srcObject = event.streams[0];
                 remoteVideoRef.current.play().catch(err =>
                     console.error("[VideoCall] Error playing remote video:", err)
                 );
+            } else {
+                console.warn("[VideoCall] Could not set remote stream", {
+                    hasVideoRef: !!remoteVideoRef.current,
+                    hasStreams: !!event.streams[0]
+                });
             }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+            console.log("[VideoCall] ICE Connection State:", pc.iceConnectionState);
+        };
+
+        pc.onsignalingstatechange = () => {
+            console.log("[VideoCall] Signaling State:", pc.signalingState);
         };
 
         // Get local media and then check for any pending offer.
@@ -135,33 +155,28 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
             try {
                 const data = JSON.parse(event.data) as WebRTCMessage;
                 console.log("[VideoCall] Message received:", data);
+
                 if (data.action === "webrtc-offer" && data.source === remoteId) {
-                    console.log("[VideoCall] Offer received from remoteId:", remoteId);
+                    console.log("[VideoCall] Processing offer from:", remoteId);
                     if (!localStreamRef.current) {
-                        console.warn(
-                            "[VideoCall] Local stream not available, storing pending offer"
-                        );
+                        console.warn("[VideoCall] Local stream not ready, storing offer");
                         pendingOfferRef.current = data;
                     } else {
                         handleOffer(data);
                     }
                 } else if (data.action === "webrtc-answer" && data.source === remoteId) {
-                    console.log("[VideoCall] Answer received from remoteId:", remoteId);
-                    pc.setRemoteDescription(new RTCSessionDescription(data.answer)).catch(
-                        (err) =>
-                            console.error(
-                                "[VideoCall] Error setting remote description:",
-                                err
-                            )
-                    );
+                    console.log("[VideoCall] Processing answer from:", remoteId);
+                    if (!pcRef.current) return;
+                    pcRef.current.setRemoteDescription(new RTCSessionDescription(data.answer))
+                        .catch(err => console.error("[VideoCall] Error setting remote description:", err));
                 } else if (data.action === "webrtc-ice" && data.source === remoteId) {
-                    console.log("[VideoCall] ICE candidate received from remoteId:", remoteId);
-                    pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch((err) =>
-                        console.error("[VideoCall] Error adding ICE candidate:", err)
-                    );
+                    console.log("[VideoCall] Processing ICE candidate from:", remoteId);
+                    if (!pcRef.current) return;
+                    pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate))
+                        .catch(err => console.error("[VideoCall] Error adding ICE candidate:", err));
                 }
             } catch (err) {
-                console.error("[VideoCall] Error processing WebSocket message:", err);
+                console.error("[VideoCall] Error processing message:", err);
             }
         };
 
