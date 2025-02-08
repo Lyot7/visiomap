@@ -62,8 +62,7 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
         const permission = await requestAccelerometerPermission();
         if (permission === "granted") {
-          const cleanup = setupEventListener();
-          return cleanup;
+          setupEventListener();
         } else {
           console.warn("Accelerometer access denied or unsupported.");
         }
@@ -71,18 +70,10 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
         setIsSupported(false);
         console.warn("DeviceMotionEvent not supported on this device.");
       }
-      return undefined;
     };
 
-    let cleanup: (() => void) | undefined;
-    initializeAccelerometer().then((fn) => {
-      cleanup = fn;
-    });
-
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [onSpeedChange]);
+    initializeAccelerometer();
+  }, []);
 
   return {
     speed,
