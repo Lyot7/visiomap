@@ -35,7 +35,7 @@ const useWebSocket = (
   useEffect(() => {
     console.log("Attempting to open WebSocket connection...");
     const newSocket = new WebSocket(
-      `ws://eliott.bouquerel.caen.mds-project.fr:7864`
+      `wss://eliott.bouquerel.caen.mds-project.fr:7864`
     );
     setSocket(newSocket);
 
