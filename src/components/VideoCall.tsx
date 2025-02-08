@@ -224,6 +224,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
     }, [socket, remoteId, myID, handleOffer]);
 
     const handleHangup = useCallback(() => {
+
         console.log("[VideoCall] Hanging up");
         if (pcRef.current) {
             pcRef.current.close();
