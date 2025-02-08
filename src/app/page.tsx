@@ -11,6 +11,8 @@ dotenv.config();
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
+  // New state: mapUsers will only hold users when a new one is added.
+  const [mapUsers, setMapUsers] = useState<User[]>([]);
   const [myID, setMyID] = useState<string>(""); // On utilise une string (ID généré par uuid)
   const [isModalOpen, setModalOpen] = useState(false);
   // Pour le caller (celui qui initie l'appel) on stocke l'ID de la personne appelée
@@ -72,6 +74,7 @@ export default function Home() {
     return () => clearInterval(intervalId);
   }, [socket, speed, sendSpeed]);
 
+  // Listen for call end events on the socket.
   useEffect(() => {
     if (socket) {
       socket.onmessage = (event) => {
@@ -82,6 +85,16 @@ export default function Home() {
       };
     }
   }, [socket]);
+
+  // Update `mapUsers` only when a new user connects.
+  // Instead of always replacing the state with the `users` array,
+  // only add users that are not already in `mapUsers`
+  useEffect(() => {
+    setMapUsers((prevMapUsers) => {
+      const newUsers = users.filter(user => !prevMapUsers.some(existingUser => existingUser.id === user.id));
+      return newUsers.length > 0 ? [...prevMapUsers, ...newUsers] : prevMapUsers;
+    });
+  }, [users]);
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">
@@ -102,7 +115,8 @@ export default function Home() {
         }}
         callerName={callerName}
       />
-      <Map users={users} />
+      {/* Updated Map component to use mapUsers so that the map is only updated when new users are added */}
+      <Map users={mapUsers} />
       <section>
         <h1 className="text-3xl font-bold">Trouvez vos collègues et lancez une visio</h1>
         <div>
