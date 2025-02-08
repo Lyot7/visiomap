@@ -23,6 +23,7 @@ const useWebSocket = (
   const safeSend = useCallback(
     (data: Record<string, unknown>): void => {
       if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log("Sending data:", data);
         socket.send(JSON.stringify(data));
       } else {
         console.warn("WebSocket is not open. Cannot send message:", data);
@@ -32,14 +33,32 @@ const useWebSocket = (
   );
 
   useEffect(() => {
+    console.log("Attempting to open WebSocket connection...");
     const newSocket = new WebSocket(
       `wss://eliott.bouquerel.caen.mds-project.fr/ws/`
     );
     setSocket(newSocket);
-    return () => newSocket.close();
+
+    newSocket.onopen = () => {
+      console.log("WebSocket connection opened.");
+    };
+
+    newSocket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    newSocket.onclose = (event) => {
+      console.log("WebSocket connection closed:", event);
+    };
+
+    return () => {
+      console.log("Closing WebSocket connection...");
+      newSocket.close();
+    };
   }, []);
 
   const handleConnect = (userId: string, myID: string) => {
+    console.log(`Connecting with userId: ${userId}, myID: ${myID}`);
     safeSend({
       action: "connect",
       userId,
@@ -53,6 +72,7 @@ const useWebSocket = (
     users: User[]
   ) => {
     const caller = users.find((user) => user.id.toString() === callerId);
+    console.log(`Sending call invitation from ${callerId} to ${recieverId}`);
     safeSend({
       action: "call-invitation",
       callerId: callerId,
@@ -62,15 +82,18 @@ const useWebSocket = (
   };
 
   const handleDeny = () => {
+    console.log("Denying call invitation");
     safeSend({ action: "deny" });
   };
 
   useEffect(() => {
     if (socket) {
       socket.onopen = () => {
+        console.log("WebSocket is open, setting up message handlers.");
         let userId = "";
         socket.onmessage = (event) => {
           const data = JSON.parse(event.data);
+          console.log("Received message:", data);
           if (data.type === "userID") {
             userId = data.id;
             setMyID(userId);
@@ -83,7 +106,6 @@ const useWebSocket = (
             setModalOpen(true);
           } else if (data.type === "call-accepted") {
             console.log(`Call accepted by ${data.from}`);
-            // For the caller, once confirmed, start the video call
             setCallData({ role: "caller", remoteId: data.from });
           }
         };
@@ -95,6 +117,10 @@ const useWebSocket = (
               lat: position.coords.latitude,
               lng: position.coords.longitude,
             };
+            console.log(
+              "Sending connection data with coordinates:",
+              coordinates
+            );
             safeSend({
               type: "connection",
               name: name,
@@ -102,7 +128,9 @@ const useWebSocket = (
             });
           },
           () => {
-            console.log("Failed to get user's location");
+            console.log(
+              "Failed to get user's location, sending default coordinates."
+            );
             safeSend({
               type: "connection",
               name: "Anonymous",
@@ -112,12 +140,15 @@ const useWebSocket = (
         );
       };
 
-      // Optionally, periodically request the list of users.
       const intervalId = setInterval(() => {
+        console.log("Requesting user list...");
         safeSend({ action: "get-users" });
       }, 5000);
 
-      return () => clearInterval(intervalId);
+      return () => {
+        console.log("Clearing user list request interval.");
+        clearInterval(intervalId);
+      };
     }
   }, [
     socket,
