@@ -147,6 +147,7 @@ wss.on("connection", (client) => {
       case "update-speed": {
         const user = users.find((u) => u.id === client.userId);
         if (user) {
+          console.log("data from update-speed : ", data);
           user.speed = data.speed;
           console.log("Speed received from client:", data.speed);
           // Broadcast the updated user list to all clients
