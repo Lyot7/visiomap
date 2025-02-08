@@ -1,16 +1,16 @@
-import express from "express";
 import bodyParser from "body-parser";
-import { WebSocketServer, WebSocket } from "ws";
-import { v4 as uuidv4 } from "uuid";
-import https from "https";
 import cors from "cors";
-import fs from "fs";
 import dotenv from "dotenv";
+import express from "express";
+import fs from "fs";
+import https from "https";
+import { v4 as uuidv4 } from "uuid";
+import { WebSocket, WebSocketServer } from "ws";
 dotenv.config();
 
 const app = express();
 
-const PORT = process.env.NEXT_PUBLIC_PORT || 1234;
+const PORT = 7864;
 
 // Middleware
 app.use(cors());
@@ -40,6 +40,7 @@ const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
 wss.on("connection", (client) => {
+  console.log("New WebSocket connection established.");
   const userId = uuidv4();
   // Attach the generated userId to the client
   client.userId = userId;
@@ -49,6 +50,7 @@ wss.on("connection", (client) => {
 
   // Handle incoming messages from this client
   client.on("message", (message) => {
+    console.log("Received message:", message.toString());
     const data = JSON.parse(message.toString());
 
     // If a connection message is received, add the user
@@ -66,6 +68,7 @@ wss.on("connection", (client) => {
     // Process actions based on data.action
     switch (data.action) {
       case "get-users":
+        console.log("Sending user list to client.");
         client.send(JSON.stringify({ type: "users", users }));
         break;
       case "call-invitation": {
@@ -138,6 +141,7 @@ wss.on("connection", (client) => {
         break;
       }
       default:
+        console.log("Unknown action:", data.action);
         break;
     }
   });
