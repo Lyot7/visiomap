@@ -148,10 +148,12 @@ wss.on("connection", (client) => {
         const user = users.find((u) => u.id === client.userId);
         if (user) {
           user.speed = data.speed;
-          // Broadcast la mise à jour à tous les clients
+          console.log("Speed received from client:", data.speed);
+          // Broadcast the updated user list to all clients
           wss.clients.forEach((c) => {
             if (c.readyState === WebSocket.OPEN) {
               c.send(JSON.stringify({ type: "newUser", users }));
+              console.log("Updated users:", users);
             }
           });
         }

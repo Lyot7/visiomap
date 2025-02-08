@@ -87,6 +87,7 @@ const useWebSocket = (
 
   const sendSpeed = useCallback(
     (speed: number) => {
+      console.log("Sending speed:", speed);
       safeSend({
         action: "update-speed",
         speed: speed,
@@ -107,6 +108,7 @@ const useWebSocket = (
             userId = data.id;
             setMyID(userId);
           } else if (data.type === "newUser") {
+            console.log("Received updated user list:", data.users);
             setUsers(data.users);
           } else if (data.type === "call-invitation") {
             console.log(`Received call invitation from ${data.callerId}`);
