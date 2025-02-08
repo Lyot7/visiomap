@@ -1,8 +1,8 @@
 "use client";
-import Accelerometer from '@/components/Accelerometer';
 import CallInvitationModal from '@/components/CallInvitationModal';
 import Map from "@/components/Map";
 import VideoCall from '@/components/VideoCall';
+import useAccelerometer from '@/hooks/useAccelerometer';
 import useWebSocket, { User } from "@/hooks/useWebSocket";
 import dotenv from "dotenv";
 import { useCallback, useEffect, useState } from 'react';
@@ -54,6 +54,10 @@ export default function Home() {
       };
     }
   }, [socket]);
+
+  // Add the hook at the component level
+  useAccelerometer(handleSpeedChange);
+
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">
       <CallInvitationModal
@@ -76,29 +80,37 @@ export default function Home() {
       <Map users={users} />
       <section>
         <h1 className="text-3xl font-bold">Trouvez vos collègues et lancez une visio</h1>
-        <Accelerometer onSpeedChange={handleSpeedChange} />
         <div>
           <h2>Utilisateurs connectés:</h2>
           <ul>
             {users.map((user, index) => (
               String(user.id) !== myID ? (
-                <li key={index} className="mb-4 flex items-center">
-                  <h3 className="text-2xl mr-2">{user.name}</h3>
-                  <h2 className="text-xl">
-                    {user.coordinates.lat}, {user.coordinates.lng}
-                    {user.speed !== undefined && ` - Vitesse: ${user.speed.toFixed(2)} m/s²`}
-                  </h2>
-                  <button
-                    onClick={() => handleConnectRequest(String(user.id))}
-                    className="ml-2 bg-blue-500 text-white px-4 py-2 rounded"
-                  >
-                    Appeler
-                  </button>
+                <li key={index} className="mb-4">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <h3 className="text-2xl mr-2">{user.name}</h3>
+                      <button
+                        onClick={() => handleConnectRequest(String(user.id))}
+                        className="ml-2 bg-blue-500 text-white px-4 py-2 rounded"
+                      >
+                        Appeler
+                      </button>
+                    </div>
+                    <div className="text-xl">
+                      <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
+                      <p>Vitesse: {user.speed?.toFixed(2) || '0.00'} m/s²</p>
+                    </div>
+                  </div>
                 </li>
               ) : (
-                <li key={index} className="mb-4 flex items-center">
-                  <h3 className="text-2xl mr-2">C&apos;est moi 😉</h3>
-                  <h2 className="text-xl">{user.coordinates.lat}, {user.coordinates.lng}</h2>
+                <li key={index} className="mb-4">
+                  <div className="flex flex-col">
+                    <h3 className="text-2xl mr-2">C&apos;est moi 😉</h3>
+                    <div className="text-xl">
+                      <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
+                      <p>Vitesse: {user.speed?.toFixed(2) || '0.00'} m/s²</p>
+                    </div>
+                  </div>
                 </li>
               )
             ))}
