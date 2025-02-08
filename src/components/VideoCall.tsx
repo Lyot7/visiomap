@@ -26,10 +26,9 @@ interface VideoCallProps {
     myID: string;
     remoteId: string;
     role: 'caller' | 'callee';
-    onHangup: () => void;
 }
 
-const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onHangup }) => {
+const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) => {
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -225,6 +224,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onH
     }, [socket, remoteId, myID, handleOffer]);
 
     const handleHangup = useCallback(() => {
+
         console.log("[VideoCall] Hanging up");
         if (pcRef.current) {
             pcRef.current.close();
@@ -232,13 +232,13 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onH
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop());
         }
+        // Notify parent component to clean up call state
         socket.send(JSON.stringify({
             action: "hangup",
             target: remoteId,
             source: myID
         }));
-        onHangup();
-    }, [socket, remoteId, myID, onHangup]);
+    }, [socket, remoteId, myID]);
 
     return (
         <div className="video-call bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
