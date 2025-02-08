@@ -2,7 +2,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import https from "https";
+import http from "http";
 import { v4 as uuidv4 } from "uuid";
 import { WebSocket, WebSocketServer } from "ws";
 dotenv.config();
@@ -23,8 +23,8 @@ app.get("/", (req, res) => {
 // In-memory user storage (for demonstration purposes)
 let users = [];
 
-// Create an HTTPS server and attach a WebSocket server to it.
-const server = https.createServer(app);
+// Create an HTTP server and attach a WebSocket server to it.
+const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
