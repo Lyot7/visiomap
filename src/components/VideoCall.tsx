@@ -25,9 +25,10 @@ interface VideoCallProps {
     myID: string;
     remoteId: string;
     role: 'caller' | 'callee';
+    onCallEnded: () => void;
 }
 
-const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) => {
+const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onCallEnded }) => {
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -230,13 +231,36 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop());
         }
-        // Notify parent component to clean up call state
+        // Notify server about hangup
         socket.send(JSON.stringify({
             action: "hangup",
             target: remoteId,
             source: myID
         }));
-    }, [socket, remoteId, myID]);
+        // Call the onCallEnded callback
+        onCallEnded();
+    }, [socket, remoteId, myID, onCallEnded]);
+
+    // Add effect to handle incoming hangup messages
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleSocketMessage = (event: MessageEvent) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === "call-ended") {
+                    console.log("[VideoCall] Call ended by remote peer");
+                    handleHangup();
+                }
+            } catch (err) {
+                console.error("[VideoCall] Error processing message:", err);
+            }
+        };
+
+        socket.addEventListener("message", handleSocketMessage);
+        return () => socket.removeEventListener("message", handleSocketMessage);
+    }, [socket, handleHangup]);
+
     return (
         <div className="video-call bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
             <div className="flex justify-between items-center mb-4">

@@ -4,7 +4,7 @@ import Map from "@/components/Map";
 import VideoCall from '@/components/VideoCall';
 import useWebSocket, { User } from "@/hooks/useWebSocket";
 import dotenv from "dotenv";
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 dotenv.config();
 
@@ -33,6 +33,11 @@ export default function Home() {
     console.log(`Calling user ${receiverId} from user ${myID}`);
     sendCallInvitation(myID, receiverId, users);
   };
+
+  const handleCallEnded = useCallback(() => {
+    console.log('Call ended');
+    setCallData(null);
+  }, []);
 
   useEffect(() => {
     if (socket) {
@@ -100,6 +105,7 @@ export default function Home() {
             myID={myID}
             remoteId={callData.remoteId}
             role={callData.role}
+            onCallEnded={handleCallEnded}
           />
         </div>
       )}

@@ -134,6 +134,7 @@ wss.on("connection", (client) => {
           (c) => c.userId === data.target.toString()
         );
         if (targetSocket && targetSocket.readyState === WebSocket.OPEN) {
+          console.log("Broadcasting call end to:", data.target);
           targetSocket.send(
             JSON.stringify({
               type: "call-ended",
