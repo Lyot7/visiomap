@@ -10,32 +10,23 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   const [isSupported, setIsSupported] = useState<boolean>(false);
 
   useEffect(() => {
-    // Vérifie si DeviceMotion est disponible
     if (typeof window !== "undefined" && window.DeviceMotionEvent) {
       setIsSupported(true);
       try {
-        // Demande la permission sur iOS
-        if (
-          typeof (
-            window.DeviceMotionEvent as unknown as DeviceMotionEventWithPermission
-          ).requestPermission === "function"
-        ) {
-          const requestPermission = (
-            window.DeviceMotionEvent as unknown as DeviceMotionEventWithPermission
-          ).requestPermission;
+        const motionEvent =
+          window.DeviceMotionEvent as unknown as DeviceMotionEventWithPermission;
 
-          if (requestPermission) {
-            requestPermission()
-              .then((permissionState: string) => {
-                if (permissionState === "granted") {
-                  setupEventListener();
-                }
-              })
-              .catch(console.error);
-          } else {
-            // Pour les autres appareils
-            setupEventListener();
-          }
+        if (motionEvent.requestPermission) {
+          motionEvent
+            .requestPermission()
+            .then((permissionState: string) => {
+              if (permissionState === "granted") {
+                setupEventListener();
+              }
+            })
+            .catch(console.error);
+        } else {
+          setupEventListener();
         }
       } catch (error) {
         console.error("Erreur lors de l'accès à l'accéléromètre:", error);
@@ -52,7 +43,6 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
               (acceleration.y || 0) ** 2 +
               (acceleration.z || 0) ** 2
           );
-
           const newSpeed = Math.abs(magnitude);
           setSpeed(newSpeed);
           onSpeedChange(newSpeed);
