@@ -5,6 +5,7 @@ export interface User {
   id: number;
   name: string;
   coordinates: { lat: number; lng: number };
+  speed?: number;
 }
 
 const useWebSocket = (
@@ -83,6 +84,16 @@ const useWebSocket = (
     console.log("Denying call invitation");
     safeSend({ action: "deny" });
   };
+
+  const sendSpeed = useCallback(
+    (speed: number) => {
+      safeSend({
+        action: "update-speed",
+        speed: speed,
+      });
+    },
+    [safeSend]
+  );
 
   useEffect(() => {
     if (socket) {
@@ -164,6 +175,7 @@ const useWebSocket = (
     handleConnect,
     sendCallInvitation,
     handleDeny,
+    sendSpeed,
   };
 };
 

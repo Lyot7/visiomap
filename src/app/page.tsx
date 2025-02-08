@@ -1,4 +1,5 @@
 "use client";
+import Accelerometer from '@/components/Accelerometer';
 import CallInvitationModal from '@/components/CallInvitationModal';
 import Map from "@/components/Map";
 import VideoCall from '@/components/VideoCall';
@@ -19,7 +20,7 @@ export default function Home() {
   const [callData, setCallData] = useState<{ role: "caller" | "callee"; remoteId: string } | null>(null);
 
   // Initialisation du WebSocket avec des callbacks pour la signalisation d'appel
-  const { socket, sendCallInvitation, handleConnect, handleDeny } = useWebSocket(
+  const { socket, sendCallInvitation, handleConnect, handleDeny, sendSpeed } = useWebSocket(
     setUsers,
     setMyID,
     setModalOpen,
@@ -38,6 +39,10 @@ export default function Home() {
     console.log('Call ended');
     setCallData(null);
   }, []);
+
+  const handleSpeedChange = useCallback((speed: number) => {
+    sendSpeed(speed);
+  }, [sendSpeed]);
 
   useEffect(() => {
     if (socket) {
@@ -71,6 +76,7 @@ export default function Home() {
       <Map users={users} />
       <section>
         <h1 className="text-3xl font-bold">Trouvez vos collègues et lancez une visio</h1>
+        <Accelerometer onSpeedChange={handleSpeedChange} />
         <div>
           <h2>Utilisateurs connectés:</h2>
           <ul>
@@ -78,7 +84,10 @@ export default function Home() {
               String(user.id) !== myID ? (
                 <li key={index} className="mb-4 flex items-center">
                   <h3 className="text-2xl mr-2">{user.name}</h3>
-                  <h2 className="text-xl">{user.coordinates.lat}, {user.coordinates.lng}</h2>
+                  <h2 className="text-xl">
+                    {user.coordinates.lat}, {user.coordinates.lng}
+                    {user.speed !== undefined && ` - Vitesse: ${user.speed.toFixed(2)} m/s²`}
+                  </h2>
                   <button
                     onClick={() => handleConnectRequest(String(user.id))}
                     className="ml-2 bg-blue-500 text-white px-4 py-2 rounded"

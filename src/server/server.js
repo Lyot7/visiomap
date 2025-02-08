@@ -144,6 +144,19 @@ wss.on("connection", (client) => {
         }
         break;
       }
+      case "update-speed": {
+        const user = users.find((u) => u.id === client.userId);
+        if (user) {
+          user.speed = data.speed;
+          // Broadcast la mise à jour à tous les clients
+          wss.clients.forEach((c) => {
+            if (c.readyState === WebSocket.OPEN) {
+              c.send(JSON.stringify({ type: "newUser", users }));
+            }
+          });
+        }
+        break;
+      }
       default:
         console.log("Unknown action:", data.action);
         break;
