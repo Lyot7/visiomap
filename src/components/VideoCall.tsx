@@ -68,12 +68,41 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
             ]
         });
         pcRef.current = pc;
+
+        // Handle negotiation
+        pc.onnegotiationneeded = () => {
+            console.log("[VideoCall] Negotiation needed");
+            if (role === "caller") {
+                console.log("[VideoCall] Creating offer as caller");
+                pc.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                })
+                    .then((offer) => {
+                        console.log("[VideoCall] Setting local description");
+                        return pc.setLocalDescription(offer);
+                    })
+                    .then(() => {
+                        if (pc.localDescription) {
+                            console.log("[VideoCall] Sending offer");
+                            socket.send(
+                                JSON.stringify({
+                                    action: "webrtc-offer",
+                                    offer: pc.localDescription,
+                                    target: remoteId,
+                                    source: myID,
+                                })
+                            );
+                        }
+                    })
+                    .catch((err) =>
+                        console.error("[VideoCall] Error creating offer:", err)
+                    );
+            }
+        };
 
         pc.onconnectionstatechange = () => {
             console.log("[VideoCall] Connection State:", pc.connectionState);
@@ -120,11 +149,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
             console.log("[VideoCall] Signaling State:", pc.signalingState);
         };
 
-        pc.onnegotiationneeded = () => {
-            console.log("[VideoCall] Negotiation needed");
-        };
-
-        // Get local media and then check for any pending offer.
+        // Get local media
         navigator.mediaDevices
             .getUserMedia({ video: true, audio: true })
             .then((stream) => {
@@ -159,12 +184,11 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
                 localStreamRef.current.getTracks().forEach((track) => track.stop());
             }
         };
-    }, [socket, remoteId, myID, handleOffer]);
+    }, [socket, remoteId, myID, handleOffer, role]);
 
     // WebSocket message handler.
     useEffect(() => {
         if (!socket || !pcRef.current) return;
-        const pc = pcRef.current;
 
         const handleSocketMessage = (event: MessageEvent) => {
             try {
@@ -196,50 +220,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         };
 
         socket.addEventListener("message", handleSocketMessage);
-
-        if (role === "caller") {
-            const offerTimeout = setTimeout(() => {
-                console.log("[VideoCall] Creating offer as caller");
-                // Ensure we have tracks before creating offer
-                if (!localStreamRef.current?.getTracks().length) {
-                    console.error("[VideoCall] No local tracks available for offer");
-                    return;
-                }
-
-                pc.createOffer({
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: true
-                })
-                    .then((offer) => {
-                        console.log("[VideoCall] Setting local description");
-                        return pc.setLocalDescription(offer);
-                    })
-                    .then(() => {
-                        if (pc.localDescription) {
-                            console.log("[VideoCall] Sending offer with tracks:",
-                                localStreamRef.current?.getTracks().map(t => t.kind));
-                            socket.send(
-                                JSON.stringify({
-                                    action: "webrtc-offer",
-                                    offer: pc.localDescription,
-                                    target: remoteId,
-                                    source: myID,
-                                })
-                            );
-                        }
-                    })
-                    .catch((err) =>
-                        console.error("[VideoCall] Error creating offer:", err)
-                    );
-            }, 1500);
-
-            return () => clearTimeout(offerTimeout);
-        }
-
-        return () => {
-            socket.removeEventListener("message", handleSocketMessage);
-        };
-    }, [socket, remoteId, role, myID, handleOffer]);
+        return () => socket.removeEventListener("message", handleSocketMessage);
+    }, [socket, remoteId, myID, handleOffer]);
 
     return (
         <div className="video-call bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
