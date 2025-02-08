@@ -1,5 +1,5 @@
 // VideoCall.tsx
-import React, { useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 
 interface WebRTCOfferMessage {
     action: "webrtc-offer";
@@ -37,6 +37,29 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
     const localStreamRef = useRef<MediaStream | null>(null);
     // This ref holds an offer if it arrives before the local stream is ready.
     const pendingOfferRef = useRef<WebRTCOfferMessage | null>(null);
+
+    // Helper to process an incoming offer.
+    const handleOffer = useCallback((offerData: WebRTCOfferMessage): void => {
+        if (!pcRef.current) return;
+        const pc = pcRef.current;
+        pc.setRemoteDescription(new RTCSessionDescription(offerData.offer))
+            .then(() => pc.createAnswer())
+            .then((answer) => pc.setLocalDescription(answer).then(() => answer))
+            .then((answer) => {
+                console.log("[VideoCall] Sending answer");
+                socket.send(
+                    JSON.stringify({
+                        action: "webrtc-answer",
+                        answer: answer,
+                        target: remoteId,
+                        source: myID,
+                    })
+                );
+            })
+            .catch((err) =>
+                console.error("[VideoCall] Error handling offer:", err)
+            );
+    }, [socket, remoteId, myID]);
 
     // Create the RTCPeerConnection and obtain local media.
     useEffect(() => {
@@ -98,30 +121,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
                 localStreamRef.current.getTracks().forEach((track) => track.stop());
             }
         };
-    }, [socket, remoteId, myID]);
-
-    // Helper to process an incoming offer.
-    const handleOffer = (offerData: WebRTCOfferMessage): void => {
-        if (!pcRef.current) return;
-        const pc = pcRef.current;
-        pc.setRemoteDescription(new RTCSessionDescription(offerData.offer))
-            .then(() => pc.createAnswer())
-            .then((answer) => pc.setLocalDescription(answer).then(() => answer))
-            .then((answer) => {
-                console.log("[VideoCall] Sending answer");
-                socket.send(
-                    JSON.stringify({
-                        action: "webrtc-answer",
-                        answer: answer,
-                        target: remoteId,
-                        source: myID,
-                    })
-                );
-            })
-            .catch((err) =>
-                console.error("[VideoCall] Error handling offer:", err)
-            );
-    };
+    }, [socket, remoteId, myID, handleOffer]);
 
     // WebSocket message handler.
     useEffect(() => {
@@ -193,7 +193,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         return () => {
             socket.removeEventListener("message", handleSocketMessage);
         };
-    }, [socket, remoteId, role, myID]);
+    }, [socket, remoteId, role, myID, handleOffer]);
 
     return (
         <div className="video-call bg-white p-4 rounded shadow-lg">
