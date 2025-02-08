@@ -94,18 +94,21 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         };
 
         pc.ontrack = event => {
-            console.log("[VideoCall] Remote track received", event.streams[0]?.getTracks());
-            if (remoteVideoRef.current && event.streams[0]) {
-                console.log("[VideoCall] Setting remote stream");
-                remoteVideoRef.current.srcObject = event.streams[0];
-                remoteVideoRef.current.play().catch(err =>
-                    console.error("[VideoCall] Error playing remote video:", err)
-                );
-            } else {
-                console.warn("[VideoCall] Could not set remote stream", {
-                    hasVideoRef: !!remoteVideoRef.current,
-                    hasStreams: !!event.streams[0]
-                });
+            console.log("[VideoCall] Remote track received", {
+                kind: event.track.kind,
+                trackId: event.track.id,
+                streamId: event.streams[0]?.id
+            });
+
+            const [remoteStream] = event.streams;
+            if (!remoteStream) {
+                console.error("[VideoCall] No remote stream in track event");
+                return;
+            }
+
+            if (remoteVideoRef.current) {
+                console.log("[VideoCall] Setting remote stream to video element");
+                remoteVideoRef.current.srcObject = remoteStream;
             }
         };
 
@@ -117,18 +120,30 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
             console.log("[VideoCall] Signaling State:", pc.signalingState);
         };
 
+        pc.onnegotiationneeded = () => {
+            console.log("[VideoCall] Negotiation needed");
+        };
+
         // Get local media and then check for any pending offer.
         navigator.mediaDevices
             .getUserMedia({ video: true, audio: true })
             .then((stream) => {
-                console.log("[VideoCall] Local stream obtained");
+                console.log("[VideoCall] Local stream obtained with tracks:",
+                    stream.getTracks().map(t => t.kind));
                 localStreamRef.current = stream;
+
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = stream;
                 }
-                stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-                // If an offer came in before the stream was ready, process it now.
+
+                // Add tracks to peer connection
+                stream.getTracks().forEach((track) => {
+                    console.log("[VideoCall] Adding track to peer connection:", track.kind);
+                    pc.addTrack(track, stream);
+                });
+
                 if (pendingOfferRef.current) {
+                    console.log("[VideoCall] Processing pending offer");
                     handleOffer(pendingOfferRef.current);
                     pendingOfferRef.current = null;
                 }
@@ -185,11 +200,24 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
         if (role === "caller") {
             const offerTimeout = setTimeout(() => {
                 console.log("[VideoCall] Creating offer as caller");
-                pc.createOffer()
-                    .then((offer) => pc.setLocalDescription(offer))
+                // Ensure we have tracks before creating offer
+                if (!localStreamRef.current?.getTracks().length) {
+                    console.error("[VideoCall] No local tracks available for offer");
+                    return;
+                }
+
+                pc.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                })
+                    .then((offer) => {
+                        console.log("[VideoCall] Setting local description");
+                        return pc.setLocalDescription(offer);
+                    })
                     .then(() => {
                         if (pc.localDescription) {
-                            console.log("[VideoCall] Sending offer to remoteId:", remoteId);
+                            console.log("[VideoCall] Sending offer with tracks:",
+                                localStreamRef.current?.getTracks().map(t => t.kind));
                             socket.send(
                                 JSON.stringify({
                                     action: "webrtc-offer",
