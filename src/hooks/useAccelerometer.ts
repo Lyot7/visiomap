@@ -9,23 +9,23 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
   const requestAccelerometerPermission = async () => {
     try {
-      // Extend the DeviceMotionEvent type to include requestPermission
       const DeviceMotionEvent =
         window.DeviceMotionEvent as typeof globalThis.DeviceMotionEvent & {
           requestPermission?: () => Promise<PermissionState>;
         };
 
-      // Check if the Sensors API is available
       if (
         "DeviceMotionEvent" in window &&
         typeof DeviceMotionEvent.requestPermission === "function"
       ) {
         const permission = await DeviceMotionEvent.requestPermission();
         setPermissionStatus(permission);
+        if (permission !== "granted") {
+          console.warn("Accelerometer permission denied by user.");
+        }
         return permission;
       }
 
-      // If permission is not needed (Android, etc.), consider as "granted"
       setPermissionStatus("granted");
       return "granted";
     } catch (error) {
@@ -38,7 +38,7 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   useEffect(() => {
     const setupEventListener = () => {
       const handleMotion = (event: DeviceMotionEvent) => {
-        const acceleration = event.acceleration;
+        const acceleration = event.accelerationIncludingGravity;
         if (acceleration) {
           const magnitude = Math.sqrt(
             (acceleration.x || 0) ** 2 +
@@ -46,6 +46,7 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
               (acceleration.z || 0) ** 2
           );
           const newSpeed = Math.abs(magnitude);
+          console.log("Detected speed:", newSpeed);
           setSpeed(newSpeed);
           onSpeedChange(newSpeed);
         }
@@ -61,22 +62,25 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
         const permission = await requestAccelerometerPermission();
         if (permission === "granted") {
-          return setupEventListener(); // Return the cleanup function
+          const cleanup = setupEventListener();
+          return cleanup;
+        } else {
+          console.warn("Accelerometer access denied or unsupported.");
         }
       } else {
         setIsSupported(false);
+        console.warn("DeviceMotionEvent not supported on this device.");
       }
-      return undefined; // Return undefined if not supported or permission denied
+      return undefined;
     };
 
-    // Call the async function and handle cleanup
     let cleanup: (() => void) | undefined;
     initializeAccelerometer().then((fn) => {
       cleanup = fn;
     });
 
     return () => {
-      if (cleanup) cleanup(); // Call the cleanup function if it exists
+      if (cleanup) cleanup();
     };
   }, [onSpeedChange]);
 
