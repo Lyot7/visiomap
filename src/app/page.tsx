@@ -163,7 +163,7 @@ export default function Home() {
         </div>
         {/* Debug section to show accelerometer hook data */}
         <div className="mt-8 p-4 border border-gray-300">
-          <h2 className="text-xl font-bold">Accelerometer Data</h2>
+          <h2 className="text-xl font-bold">Live Accelerometer Data</h2>
           <p><strong>Speed:</strong> {speed}</p>
           <p><strong>Supported:</strong> {isSupported ? "Yes" : "No"}</p>
           <p><strong>Permission Status:</strong> {permissionStatus}</p>
