@@ -44,6 +44,9 @@ export default function Home() {
     sendSpeed(speed);
   }, [sendSpeed]);
 
+  // Capture accelerometer values from the hook for UI display
+  const { speed, isSupported, permissionStatus, requestPermission } = useAccelerometer(handleSpeedChange);
+
   useEffect(() => {
     if (socket) {
       socket.onmessage = (event) => {
@@ -54,9 +57,6 @@ export default function Home() {
       };
     }
   }, [socket]);
-
-  // Add the hook at the component level
-  useAccelerometer(handleSpeedChange);
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">
@@ -121,6 +121,16 @@ export default function Home() {
               )
             ))}
           </ul>
+        </div>
+        {/* Debug section to show accelerometer hook data */}
+        <div className="mt-8 p-4 border border-gray-300">
+          <h2 className="text-xl font-bold">Accelerometer Data</h2>
+          <p><strong>Speed:</strong> {speed}</p>
+          <p><strong>Supported:</strong> {isSupported ? "Yes" : "No"}</p>
+          <p><strong>Permission Status:</strong> {permissionStatus}</p>
+          <button onClick={requestPermission} className="mt-2 bg-green-500 text-white px-4 py-2 rounded">
+            Request Permission
+          </button>
         </div>
       </section>
 
