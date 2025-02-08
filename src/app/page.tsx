@@ -102,6 +102,7 @@ export default function Home() {
             myID={myID}
             remoteId={callData.remoteId}
             role={callData.role}
+            onHangup={() => setCallData(null)}
           />
         </div>
       )}
