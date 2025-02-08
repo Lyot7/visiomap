@@ -2,7 +2,6 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import fs from "fs";
 import https from "https";
 import { v4 as uuidv4 } from "uuid";
 import { WebSocket, WebSocketServer } from "ws";
@@ -24,18 +23,8 @@ app.get("/", (req, res) => {
 // In-memory user storage (for demonstration purposes)
 let users = [];
 
-// Read your SSL certificates
-const sslOptions = {
-  key: fs.readFileSync(
-    "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/privkey.pem"
-  ),
-  cert: fs.readFileSync(
-    "/etc/letsencrypt/live/eliott.bouquerel.caen.mds-project.fr/fullchain.pem"
-  ),
-};
-
 // Create an HTTPS server and attach a WebSocket server to it.
-const server = https.createServer(sslOptions, app);
+const server = https.createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Handle WebSocket connections
