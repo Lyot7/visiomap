@@ -89,8 +89,11 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
 
         pc.ontrack = event => {
             console.log("[VideoCall] Remote track received", event.streams);
-            if (remoteVideoRef.current && event.streams && event.streams[0]) {
+            if (remoteVideoRef.current && event.streams[0]) {
                 remoteVideoRef.current.srcObject = event.streams[0];
+                remoteVideoRef.current.play().catch(err =>
+                    console.error("[VideoCall] Error playing remote video:", err)
+                );
             }
         };
 
@@ -204,6 +207,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
                     <video
                         ref={localVideoRef}
                         autoPlay
+                        playsInline
                         muted
                         style={{ width: "200px", border: "1px solid #000" }}
                     />
@@ -213,6 +217,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role }) =
                     <video
                         ref={remoteVideoRef}
                         autoPlay
+                        playsInline
                         style={{ width: "400px", border: "1px solid #000" }}
                     />
                 </div>
