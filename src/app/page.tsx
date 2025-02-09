@@ -63,17 +63,6 @@ export default function Home() {
     }
   }, [socket, speed, isSupported, permissionStatus, safeSend]);
 
-  // Also, in case motion events do not fire, send the speed regularly.
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      if (socket) {
-        console.log("Regularly sending speed update:", speed);
-        sendSpeed(speed);
-      }
-    }, 1000);
-    return () => clearInterval(intervalId);
-  }, [socket, speed, sendSpeed]);
-
   // Listen for call end events on the socket.
   useEffect(() => {
     if (socket) {
