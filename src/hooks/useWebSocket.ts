@@ -41,7 +41,7 @@ const useWebSocket = (
     console.log("Attempting to open WebSocket connection...");
     const hostname =
       window.location.hostname === "localhost"
-        ? "ws://localhost:7864"
+        ? "ws://localhost:" + process.env.NEXT_PUBLIC_PORT + "/"
         : "wss://" + window.location.hostname + "/ws/";
     const newSocket = new WebSocket(hostname);
     setSocket(newSocket);
