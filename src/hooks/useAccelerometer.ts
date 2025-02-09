@@ -1,11 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   const [speed, setSpeed] = useState<number>(0);
   const [isSupported, setIsSupported] = useState<boolean>(false);
   const [permissionStatus, setPermissionStatus] =
     useState<PermissionState | null>(null);
+
+  // New state to manage the interval for sending speed data
+  const [sendSpeed, setSendSpeed] = useState<number | null>(null);
+  const lastSend = useRef<number>(Date.now());
 
   const requestAccelerometerPermission = async () => {
     console.log("Requesting accelerometer permission...");
@@ -65,7 +69,7 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
             acceleration
           );
           setSpeed(newSpeed);
-          onSpeedChange(newSpeed);
+          setSendSpeed(newSpeed); // Update the sendSpeed state
         } else {
           console.warn("No accelerometer data available from event.");
         }
@@ -102,6 +106,16 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
     initializeAccelerometer();
   }, [onSpeedChange]);
+
+  const throttle = 500; // 500ms throttle time
+
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastSend.current >= throttle && sendSpeed !== null) {
+      onSpeedChange(sendSpeed); // Send the speed data to the server
+      lastSend.current = now;
+    }
+  }, [sendSpeed, onSpeedChange]);
 
   console.log(
     "useAccelerometer hook setup complete.",

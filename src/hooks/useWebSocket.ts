@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface User {
   id: number;
@@ -21,8 +21,6 @@ const useWebSocket = (
   >
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
-
-  const lastSend = useRef(0);
 
   // Use a callback that sends data only when the WebSocket is open.
   const safeSend = useCallback(
@@ -89,19 +87,14 @@ const useWebSocket = (
     safeSend({ action: "deny" });
   };
 
-  const ThrottleTiming = 2000;
-
   const sendSpeed = useCallback(
     (speed: number) => {
-      const now = Date.now();
-      if (now - lastSend.current > ThrottleTiming) {
-        console.log("Sending speed:", speed);
-        lastSend.current = now;
-        safeSend({
-          action: "update-speed",
-          speed: speed,
-        });
-      }
+      console.log("Sending speed:", speed);
+
+      safeSend({
+        action: "update-speed",
+        speed: speed,
+      });
     },
     [safeSend]
   );
