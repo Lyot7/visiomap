@@ -42,28 +42,21 @@ export default function Home() {
     setCallData(null);
   }, []);
 
-  // Throttle speed updates: ensure sendSpeed is not called more than once every second.
-  // We use two refs: one to store the timestamp of the last update,
-  // and one to hold a trailing timeout if a new speed is received too soon.
+  // Throttle speed updates: ensure sendSpeed is not called more than once every 500ms.
+  // Here, we only perform a check and send immediately if sufficient time has elapsed,
+  // otherwise we simply skip the update.
   const lastSpeedUpdateRef = useRef<number>(0);
-  const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const THROTTLE_INTERVAL = 500; // 500ms throttle interval
 
   const handleSpeedChange = useCallback((newSpeed: number) => {
     const now = Date.now();
-    if (now - lastSpeedUpdateRef.current >= 1000) {
-      console.log("Sending speed update (immediate):", newSpeed);
+    if (now - lastSpeedUpdateRef.current >= THROTTLE_INTERVAL) {
+      console.log("Sending speed update:", newSpeed);
       sendSpeed(newSpeed);
       lastSpeedUpdateRef.current = now;
     } else {
-      if (throttleTimeoutRef.current) {
-        clearTimeout(throttleTimeoutRef.current);
-      }
-      const timeRemaining = 1000 - (now - lastSpeedUpdateRef.current);
-      throttleTimeoutRef.current = setTimeout(() => {
-        console.log("Sending speed update (throttled):", newSpeed);
-        sendSpeed(newSpeed);
-        lastSpeedUpdateRef.current = Date.now();
-      }, timeRemaining);
+      console.warn("Skipping speed update due to throttle limit");
+      // No trailing update is scheduled, relying on new events to send the actual speed.
     }
   }, [sendSpeed]);
 
