@@ -5,7 +5,7 @@ import VideoCall from '@/components/VideoCall';
 import useAccelerometer from '@/hooks/useAccelerometer';
 import useWebSocket, { User } from "@/hooks/useWebSocket";
 import dotenv from "dotenv";
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 dotenv.config();
 
@@ -42,15 +42,37 @@ export default function Home() {
     setCallData(null);
   }, []);
 
-  const handleSpeedChange = useCallback((speed: number) => {
-    // Send speed immediately when it changes
-    sendSpeed(speed);
+  // Throttle speed updates: ensure sendSpeed is not called more than once every second.
+  // We use two refs: one to store the timestamp of the last update,
+  // and one to hold a trailing timeout if a new speed is received too soon.
+  const lastSpeedUpdateRef = useRef<number>(0);
+  const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSpeedChange = useCallback((newSpeed: number) => {
+    const now = Date.now();
+    if (now - lastSpeedUpdateRef.current >= 1000) {
+      console.log("Sending speed update (immediate):", newSpeed);
+      sendSpeed(newSpeed);
+      lastSpeedUpdateRef.current = now;
+    } else {
+      if (throttleTimeoutRef.current) {
+        clearTimeout(throttleTimeoutRef.current);
+      }
+      const timeRemaining = 1000 - (now - lastSpeedUpdateRef.current);
+      throttleTimeoutRef.current = setTimeout(() => {
+        console.log("Sending speed update (throttled):", newSpeed);
+        sendSpeed(newSpeed);
+        lastSpeedUpdateRef.current = Date.now();
+      }, timeRemaining);
+    }
   }, [sendSpeed]);
 
-  // Capture accelerometer values from the hook for both UI display and update
+  // Capture accelerometer values from the hook for both UI display and update.
+  // Note that the handleSpeedChange function is throttled.
   const { speed, isSupported, permissionStatus, requestPermission } = useAccelerometer(handleSpeedChange);
 
-  // Send the current accelerometer data (even if speed is 0) to update the user on the server.
+  // Send additional connection update details (this effect is separate and still
+  // sends extra data like isSupported and permissionStatus every time they change).
   useEffect(() => {
     if (socket) {
       console.log("Sending connection update with accelerometer data:", { speed, isSupported, permissionStatus });
@@ -62,17 +84,6 @@ export default function Home() {
       });
     }
   }, [socket, speed, isSupported, permissionStatus, safeSend]);
-
-  // Also, in case motion events do not fire, send the speed regularly.
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      if (socket) {
-        console.log("Regularly sending speed update:", speed);
-        sendSpeed(speed);
-      }
-    }, 1000);
-    return () => clearInterval(intervalId);
-  }, [socket, speed, sendSpeed]);
 
   // Listen for call end events on the socket.
   useEffect(() => {
