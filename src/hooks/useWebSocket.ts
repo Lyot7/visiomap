@@ -96,14 +96,15 @@ const useWebSocket = (
       const now = Date.now();
       if (now - lastSend.current < ThrottleTiming) {
         return;
+      } else {
+        console.log("Sending speed:", speed);
+        lastSend.current = now;
+        safeSend({
+          action: "update-speed",
+          speed: speed,
+        });
+        lastSend.current = now;
       }
-      console.log("Sending speed:", speed);
-      lastSend.current = now;
-      safeSend({
-        action: "update-speed",
-        speed: speed,
-      });
-      lastSend.current = now;
     },
     [safeSend]
   );
