@@ -40,10 +40,10 @@ const useWebSocket = (
   useEffect(() => {
     console.log("Attempting to open WebSocket connection...");
     const hostname =
-      window.location.hostname === "localhost:7864"
-        ? "localhost"
-        : window.location.hostname + "/ws/";
-    const newSocket = new WebSocket(`wss://${hostname}`);
+      window.location.hostname === "localhost"
+        ? "ws://localhost:7864"
+        : "wss://" + window.location.hostname + "/ws/";
+    const newSocket = new WebSocket(hostname);
     setSocket(newSocket);
 
     newSocket.onopen = () => {
