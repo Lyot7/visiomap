@@ -98,7 +98,7 @@ const useWebSocket = (
         return;
       }
       console.log("Sending speed:", speed);
-
+      lastSend.current = now;
       safeSend({
         action: "update-speed",
         speed: speed,
