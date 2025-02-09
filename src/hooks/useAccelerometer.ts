@@ -6,10 +6,13 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   const [isSupported, setIsSupported] = useState<boolean>(false);
   const [permissionStatus, setPermissionStatus] =
     useState<PermissionState | null>(null);
-
-  // New state to manage the interval for sending speed data
+  // This state (and ref) is used to throttle sending the speed data
   const [sendSpeed, setSendSpeed] = useState<number | null>(null);
   const lastSend = useRef<number>(Date.now());
+
+  // Refs to hold velocity and the previous timestamp for integration.
+  const velocityRef = useRef({ x: 0, y: 0, z: 0 });
+  const lastTimestampRef = useRef<number | null>(null);
 
   const requestAccelerometerPermission = async () => {
     console.log("Requesting accelerometer permission...");
@@ -52,34 +55,65 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
     const setupEventListener = () => {
       console.log("Setting up devicemotion event listener.");
+
       const handleMotion = (event: DeviceMotionEvent) => {
-        // Prefer acceleration without gravity
+        // Use acceleration without gravity if available; otherwise fallback
         const acceleration =
           event.acceleration || event.accelerationIncludingGravity;
-
-        if (acceleration) {
-          const magnitude = Math.sqrt(
-            (acceleration.x || 0) ** 2 +
-              (acceleration.y || 0) ** 2 +
-              (acceleration.z || 0) ** 2
-          );
-
-          // Set speed to 0 if magnitude is less than a threshold (e.g., 0.1)
-          const newSpeed = magnitude < 0.1 ? 0 : Math.abs(magnitude);
-          console.log(
-            "Detected speed:",
-            newSpeed,
-            "from acceleration:",
-            acceleration
-          );
-
-          // Convert speed from m/s to km/h
-          const speedInKmh = newSpeed * 3.6; // 1 m/s = 3.6 km/h
-          setSpeed(speedInKmh);
-          setSendSpeed(speedInKmh); // Update the sendSpeed state
-        } else {
+        if (!acceleration) {
           console.warn("No accelerometer data available from event.");
+          return;
         }
+
+        // Get the current event timestamp (in ms)
+        const currentTime = event.timeStamp;
+        if (lastTimestampRef.current === null) {
+          lastTimestampRef.current = currentTime;
+          return; // Skip the very first event to initialize dt
+        }
+
+        // Compute the time difference in seconds
+        const dt = (currentTime - lastTimestampRef.current) / 1000;
+        lastTimestampRef.current = currentTime;
+
+        // Retrieve acceleration values (m/s²)
+        const ax = acceleration.x || 0;
+        const ay = acceleration.y || 0;
+        const az = acceleration.z || 0;
+
+        // Optional: Filter out noise if the acceleration magnitude is very low
+        const accelMagnitude = Math.sqrt(ax * ax + ay * ay + az * az);
+        const threshold = 0.1; // Adjust threshold as needed
+        const effectiveAx = accelMagnitude < threshold ? 0 : ax;
+        const effectiveAy = accelMagnitude < threshold ? 0 : ay;
+        const effectiveAz = accelMagnitude < threshold ? 0 : az;
+
+        // Integrate acceleration over time to update velocity (v = u + a * dt)
+        velocityRef.current.x += effectiveAx * dt;
+        velocityRef.current.y += effectiveAy * dt;
+        velocityRef.current.z += effectiveAz * dt;
+
+        // Compute speed as the magnitude of the velocity vector (in m/s)
+        const currentSpeed =
+          Math.sqrt(
+            velocityRef.current.x ** 2 +
+              velocityRef.current.y ** 2 +
+              velocityRef.current.z ** 2
+          ) || 0;
+
+        // Optional: Apply damping to counteract drift (simulating friction)
+        const damping = 0.98; // Adjust damping factor as needed (1 = no damping)
+        velocityRef.current.x *= damping;
+        velocityRef.current.y *= damping;
+        velocityRef.current.z *= damping;
+
+        // Convert speed from m/s to km/h
+        const speedInKmh = currentSpeed * 3.6;
+        console.log("Integrated speed (km/h):", speedInKmh);
+
+        // Update local states
+        setSpeed(speedInKmh);
+        setSendSpeed(speedInKmh);
       };
 
       window.addEventListener("devicemotion", handleMotion);
@@ -114,12 +148,12 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
     initializeAccelerometer();
   }, [onSpeedChange]);
 
-  const throttle = 500; // 500ms throttle time
-
+  // Throttle sending speed data to the server every 500ms
+  const throttle = 500; // in milliseconds
   useEffect(() => {
     const now = Date.now();
     if (now - lastSend.current >= throttle && sendSpeed !== null) {
-      onSpeedChange(sendSpeed); // Send the speed data to the server
+      onSpeedChange(sendSpeed);
       lastSend.current = now;
     }
   }, [sendSpeed, onSpeedChange]);
@@ -128,7 +162,7 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
     "useAccelerometer hook setup complete.",
     "Current speed:",
     speed,
-    "Support:",
+    "isSupported:",
     isSupported,
     "Permission status:",
     permissionStatus
