@@ -6,8 +6,8 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   const [isSupported, setIsSupported] = useState<boolean>(false);
   const [permissionStatus, setPermissionStatus] =
     useState<PermissionState | null>(null);
-  const lastSend = useRef<number>(Date.now());
   const THROTTLE_DELAY = 500; // 500ms throttle delay
+  const lastSend = useRef<number>(Date.now());
 
   // Refs to hold velocity and the previous timestamp for integration.
   const velocityRef = useRef({ x: 0, y: 0, z: 0 });
@@ -112,8 +112,7 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
         // Update local state for UI, etc.
         setSpeed(speedInKmh);
-
-        // Throttle sending the speed via onSpeedChange to at most every 500ms.
+        // Throttle the call to onSpeedChange by checking if 500ms have passed.
         const now = Date.now();
         if (now - lastSend.current >= THROTTLE_DELAY) {
           onSpeedChange(speedInKmh);
