@@ -7,7 +7,8 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   const [permissionStatus, setPermissionStatus] =
     useState<PermissionState | null>(null);
   const THROTTLE_DELAY = 500; // 500ms throttle delay
-  const lastSend = useRef<number>(Date.now());
+  // Ref to store the latest computed speed for fixed interval sending.
+  const speedRef = useRef<number>(0);
 
   // Refs to hold velocity and the previous timestamp for integration.
   const velocityRef = useRef({ x: 0, y: 0, z: 0 });
@@ -112,12 +113,8 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
         // Update local state for UI, etc.
         setSpeed(speedInKmh);
-        // Throttle the call to onSpeedChange by checking if 500ms have passed.
-        const now = Date.now();
-        if (now - lastSend.current >= THROTTLE_DELAY) {
-          onSpeedChange(speedInKmh);
-          lastSend.current = now;
-        }
+        // Store the latest speed in a ref to be sent at fixed intervals.
+        speedRef.current = speedInKmh;
       };
 
       window.addEventListener("devicemotion", handleMotion);
@@ -150,6 +147,15 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
     };
 
     initializeAccelerometer();
+  }, [onSpeedChange]);
+
+  // Set up an interval to send the latest speed to onSpeedChange every 500ms.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      onSpeedChange(speedRef.current);
+    }, THROTTLE_DELAY);
+
+    return () => clearInterval(intervalId);
   }, [onSpeedChange]);
 
   console.log(
