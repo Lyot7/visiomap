@@ -42,19 +42,15 @@ export default function Home() {
     setCallData(null);
   }, []);
 
-  // Remove throttle logic from here.
-  // Instead, handleSpeedChange now simply calls sendSpeed immediately,
-  // while throttling is managed in the useAccelerometer hook.
-  const handleSpeedChange = useCallback((newSpeed: number) => {
-    console.log("Sending speed update:", newSpeed);
-    sendSpeed(newSpeed);
+  const handleSpeedChange = useCallback((speed: number) => {
+    // Send speed immediately when it changes
+    sendSpeed(speed);
   }, [sendSpeed]);
 
-  // Capture accelerometer values from the hook for both UI display and update.
-  // Note that the handleSpeedChange function is simplified.
+  // Capture accelerometer values from the hook for both UI display and update
   const { speed, isSupported, permissionStatus, requestPermission } = useAccelerometer(handleSpeedChange);
 
-  // Send additional connection details (this effect sends extra data like isSupported and permissionStatus every time they change).
+  // Send the current accelerometer data (even if speed is 0) to update the user on the server.
   useEffect(() => {
     if (socket) {
       console.log("Sending connection update with accelerometer data:", { speed, isSupported, permissionStatus });
@@ -66,6 +62,17 @@ export default function Home() {
       });
     }
   }, [socket, speed, isSupported, permissionStatus, safeSend]);
+
+  // Also, in case motion events do not fire, send the speed regularly.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (socket) {
+        console.log("Regularly sending speed update:", speed);
+        sendSpeed(speed);
+      }
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [socket, speed, sendSpeed]);
 
   // Listen for call end events on the socket.
   useEffect(() => {
@@ -80,6 +87,8 @@ export default function Home() {
   }, [socket]);
 
   // Update `mapUsers` only when a new user connects.
+  // Instead of always replacing the state with the `users` array,
+  // only add users that are not already in `mapUsers`
   useEffect(() => {
     setMapUsers((prevMapUsers) => {
       const newUsers = users.filter(user => !prevMapUsers.some(existingUser => existingUser.id === user.id));
@@ -154,7 +163,7 @@ export default function Home() {
         </div>
         {/* Debug section to show accelerometer hook data */}
         <div className="mt-8 p-4 border border-gray-300">
-          <h2 className="text-xl font-bold">Accelerometer Data</h2>
+          <h2 className="text-xl font-bold">Live Accelerometer Data</h2>
           <p><strong>Speed:</strong> {speed}</p>
           <p><strong>Supported:</strong> {isSupported ? "Yes" : "No"}</p>
           <p><strong>Permission Status:</strong> {permissionStatus}</p>
