@@ -1,8 +1,28 @@
 # VisioMap
 
-Mon projet permet d'afficher la position des utilisateurs en temps réel, de faire des appels de visioconférence entre eux et d'afficher l'accélération de ceux-ci.
+Ce projet permet d'afficher la position des utilisateurs en temps réel, de réaliser des appels de visioconférence entre eux et d'afficher leurs données d'accélération.
 
-## Étapes pour utiliser l'application
+## Table des Matières
+
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Utilisation et Parcours Utilisateur](#utilisation-et-parcours-utilisateur)
+- [Limites & Pistes d'amélioration](#limites--pistes-damélioration)
+- [Architecture du Projet](#architecture-du-projet)
+- [Technologies Utilisées](#technologies-utilisées)
+
+## Prérequis
+
+- **Fichier `.env`** :
+
+  - Obtenez une clé API MapBox.
+  - Définissez le port sur lequel le serveur sera exécuté.
+
+- **Déploiement sur VPS** :
+  - Obtenez un certificat SSL valide.
+  - Ouvrez le port défini dans votre fichier `.env`.
+
+## Installation
 
 1. **Cloner le repository**
 
@@ -19,72 +39,103 @@ Mon projet permet d'afficher la position des utilisateurs en temps réel, de fai
 3. **Installer les dépendances**
 
    ```bash
-   npm i
+   npm install
    ```
 
-4. **Build le projet**
+4. **Construire le projet**
 
    ```bash
    npm run build
    ```
 
-5. **Lancer le projet**
+5. **Lancer l'application**
 
    ```bash
    npx serve@latest out
    ```
 
-6. **Démarrer le serveur dans un autre terminal**
+6. **Démarrer le serveur**  
+   Dans un autre terminal, lancez :
 
    ```bash
    node src/server/server.js
    ```
 
 7. **Se connecter à l'application**  
-   Utilisez le lien donné par la commande `npx serve@latest out`.
+   Utilisez le lien fourni par la commande `npx serve@latest out`.
 
-## Architecture du projet
+## Utilisation et Parcours Utilisateur
 
-Le projet est composé de plusieurs dossiers principaux :
+- **Connexion**  
+  Lors de la connexion, l'application vous demandera :
+
+  - **Géolocalisation** :
+    - _Oui_ : Votre position initiale sera utilisée sur la carte.
+    - _Non_ : Vos coordonnées par défaut seront (0, 0).
+  - **Nom d'utilisateur** :
+    - Si vous saisissez un nom, il sera affiché dans la liste des utilisateurs.
+    - Sinon, "Anonymous" sera utilisé par défaut.
+
+- **Affichage de la carte**  
+  La carte affiche en temps réel la position de chaque utilisateur.
+
+- **Accélération**
+
+  - Si votre accéléromètre est activé, les données d'accélération sont affichées en direct dans l'interface ainsi que dans la liste d'utilisateurs.
+  - Sinon, vous pouvez demander la permission via le bouton **"Request permission"**.
+
+- **Appels Vidéo**
+  - Pour appeler un utilisateur, cliquez sur le bouton **"Appeler"**.
+  - L'utilisateur appelé recevra une notification avec les options **Accepter** ou **Refuser** l'appel.
+  - En cas d'acceptation, l'accès au micro et à la caméra est demandé pour lancer la visioconférence.
+  - Pendant l'appel, vous pouvez terminer la communication en cliquant sur **"Raccrocher"**.
+
+## Limites & Pistes d'amélioration
+
+- **Limites**
+
+  - La géolocalisation fonctionne bien sur Firefox et sur certains navigateurs mobiles, mais n'est pas toujours supportée sur d'autres navigateurs (exemple : Chrome et navigateurs basés sur Chromium).
+  - En cas de forte affluence d'utilisateurs, le nombre d'appels au serveur pour l'accéléromètre pourrait être trop important. Il serait pertinent de mettre en place un mécanisme de limitation ou de mise en cache.
+  - L'application ne dispose pas d'un système de messagerie, les utilisateurs ne pouvant pas échanger de messages entre eux.
+
+## Architecture du Projet
+
+Le projet est structuré de la manière suivante :
 
 - **src/app**  
-  Point d'entrée de l'application. Le fichier `page.tsx` sert d'index et appelle les différents composants ou hooks nécessaires au bon fonctionnement de la page.
+  Le point d'entrée de l'application. Le fichier `page.tsx` sert d'index et intègre les composants et hooks nécessaires.
+
 - **src/components**  
-  Contient les composants du projet (fonctions permettant de gérer et afficher les données dans l'interface).
+  Contient tous les composants UI permettant de gérer et d'afficher les données.
+
 - **src/hooks**  
-  Contient les hooks du projet (fonctions qui renvoient des données sans fournir d'affichage direct).
+  Contient les hooks personnalisés (ex. : gestion de l'accéléromètre, WebSocket, etc.) pour récupérer et traiter les données sans fournir directement d'affichage.
+
 - **src/server**  
-  Gère la connexion, les utilisateurs, leurs données ainsi que la communication entre eux.
+  Gère la communication côté serveur, notamment la connexion WebSocket, la gestion des utilisateurs et leurs données.
 
-Le dossier **out** contient l'application build.
+- **out**  
+  Contient le build de l'application.
 
-## Technologies utilisées
+## Technologies Utilisées
 
-Pour ce projet, j'ai utilisé une stack **Next.js**, **React**, **TypeScript**, **Tailwind CSS** et **Node.js** car je la connais bien et pour une gestion efficace de l'affichage en temps réel et des rechargements de composants de l'interface (re-renders) offerts par React.
+- **Next.js & React**  
+  Pour la gestion des composants et des états, et la mise à jour en temps réel de l'interface.
 
-### Hooks et Concepts React
+- **TypeScript**  
+  Pour une meilleure robustesse et gestion des types dans le code.
 
-- **useState**  
-  Utilisé pour gérer les données et déclencher un rechargement via `useEffect` ou pour partager des états entre un parent et son enfant.
+- **Tailwind CSS**  
+  Utilisé pour la conception rapide et efficace de l'interface.
 
-- **useEffect**
-
-  - _Sans paramètre_ : Permet d'initialiser des fonctions, des écouteurs ou une configuration de base au chargement de la page.
-  - _Avec paramètres_ : Permet de re-render le composant lors d'un changement de valeur dans le state, sans recharger la page ni provoquer une nouvelle connexion au serveur.
-
-- **useRef**  
-  Permet de stocker une valeur mutable qui persiste pendant tout le cycle de vie du composant sans provoquer de re-renders.
-
-- **useCallback**  
-  Permet de mémoriser une fonction pour éviter sa recréation à chaque rechargement de page.
-
-### Autres Technologies et API
+- **Node.js**  
+  Pour le serveur, la gestion des WebSocket et les connexions entre utilisateurs.
 
 - **MapBox API**  
-  Utilisée pour afficher la carte et les positions des utilisateurs via l'ajout de layers.
+  Pour afficher une carte interactive et positionner les utilisateurs grâce à l'ajout de layers.
 
 - **WebRTC**  
-  Permet de connecter deux utilisateurs en visioconférence grâce à l'envoi de requêtes au serveur (fonctionnant comme un relais).
+  Pour établir des appels de visioconférence directement entre utilisateurs via le serveur agissant comme relais.
 
 - **DeviceMotionEvent**  
-  Utilisé pour récolter les données de l'accéléromètre et les reformater afin d'afficher la vitesse de l'utilisateur (l'accéléromètre indique l'accélération, pas directement la vitesse).
+  Pour récupérer les données d'accélération (qui indiquent l'accélération, pas directement la vitesse), et les traiter pour afficher une vitesse calculée.
