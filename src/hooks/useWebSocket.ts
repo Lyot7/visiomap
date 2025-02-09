@@ -39,7 +39,11 @@ const useWebSocket = (
   // Initialisation de la connexion WebSocket
   useEffect(() => {
     console.log("Attempting to open WebSocket connection...");
-    const newSocket = new WebSocket(`wss://${window.location.hostname}/ws/`);
+    const hostname =
+      window.location.hostname === "localhost:7864"
+        ? "localhost"
+        : window.location.hostname + "/ws/";
+    const newSocket = new WebSocket(`wss://${hostname}/ws/`);
     setSocket(newSocket);
 
     newSocket.onopen = () => {

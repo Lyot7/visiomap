@@ -1,6 +1,6 @@
 # VisioMap
 
-Mon projet permet d'afficher la position des utilisateurs en temps réel, de faire des appels de visioconférence entre eux et d'afficher la vitesse de ceux-ci.
+Mon projet permet d'afficher la position des utilisateurs en temps réel, de faire des appels de visioconférence entre eux et d'afficher l'accélération de ceux-ci.
 
 ## Étapes pour utiliser l'application
 
