@@ -1,11 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const THROTTLE_INTERVAL = 500; // 500ms throttle interval
 
 const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   const [speed, setSpeed] = useState<number>(0);
   const [isSupported, setIsSupported] = useState<boolean>(false);
   const [permissionStatus, setPermissionStatus] =
     useState<PermissionState | null>(null);
+  const lastSpeedUpdateRef = useRef<number>(0);
 
   const requestAccelerometerPermission = async () => {
     console.log("Requesting accelerometer permission...");
@@ -46,31 +49,39 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   useEffect(() => {
     console.log("Initializing accelerometer...");
 
+    const handleMotion = (event: DeviceMotionEvent) => {
+      console.log("devicemotion event triggered:", event);
+      const acceleration = event.accelerationIncludingGravity;
+      if (acceleration) {
+        const magnitude = Math.sqrt(
+          (acceleration.x || 0) ** 2 +
+            (acceleration.y || 0) ** 2 +
+            (acceleration.z || 0) ** 2
+        );
+        const newSpeed = Math.abs(magnitude);
+        console.log(
+          "Detected speed:",
+          newSpeed,
+          "from acceleration:",
+          acceleration
+        );
+        setSpeed(newSpeed);
+
+        const now = Date.now();
+        if (now - lastSpeedUpdateRef.current >= THROTTLE_INTERVAL) {
+          console.log("Calling onSpeedChange with newSpeed:", newSpeed);
+          onSpeedChange(newSpeed);
+          lastSpeedUpdateRef.current = now;
+        } else {
+          console.warn("Skipping speed update due to throttle limit");
+        }
+      } else {
+        console.warn("No accelerometer data available from event.");
+      }
+    };
+
     const setupEventListener = () => {
       console.log("Setting up devicemotion event listener.");
-      const handleMotion = (event: DeviceMotionEvent) => {
-        console.log("devicemotion event triggered:", event);
-        const acceleration = event.accelerationIncludingGravity;
-        if (acceleration) {
-          const magnitude = Math.sqrt(
-            (acceleration.x || 0) ** 2 +
-              (acceleration.y || 0) ** 2 +
-              (acceleration.z || 0) ** 2
-          );
-          const newSpeed = Math.abs(magnitude);
-          console.log(
-            "Detected speed:",
-            newSpeed,
-            "from acceleration:",
-            acceleration
-          );
-          setSpeed(newSpeed);
-          onSpeedChange(newSpeed);
-        } else {
-          console.warn("No accelerometer data available from event.");
-        }
-      };
-
       window.addEventListener("devicemotion", handleMotion);
       console.log("devicemotion event listener added.");
 

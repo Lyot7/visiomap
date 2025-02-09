@@ -5,7 +5,7 @@ import VideoCall from '@/components/VideoCall';
 import useAccelerometer from '@/hooks/useAccelerometer';
 import useWebSocket, { User } from "@/hooks/useWebSocket";
 import dotenv from "dotenv";
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 dotenv.config();
 
@@ -22,7 +22,7 @@ export default function Home() {
   const [callData, setCallData] = useState<{ role: "caller" | "callee"; remoteId: string } | null>(null);
 
   // Initialisation du WebSocket avec des callbacks pour la signalisation d'appel
-  const { socket, sendCallInvitation, handleConnect, handleDeny, sendSpeed } = useWebSocket(
+  const { socket, sendCallInvitation, handleConnect, handleDeny, sendSpeed, safeSend } = useWebSocket(
     setUsers,
     setMyID,
     setModalOpen,
@@ -31,37 +31,41 @@ export default function Home() {
     setCallData
   );
 
-  // For the caller: when "Appeler" is clicked, send a call invitation.
+  // Pour le caller : quand on clique sur "Appeler", on envoie une invitation
   const handleConnectRequest = (receiverId: string) => {
     console.log(`Calling user ${receiverId} from user ${myID}`);
     sendCallInvitation(myID, receiverId, users);
   };
 
   const handleCallEnded = useCallback(() => {
-    console.log("Call ended");
+    console.log('Call ended');
     setCallData(null);
   }, []);
 
-  // Throttle speed updates: send speed only if 500ms has passed since the last update.
-  const lastSpeedUpdateRef = useRef<number>(0);
-  const THROTTLE_INTERVAL = 500; // 500ms throttle interval
+  // Remove throttle logic from here.
+  // Instead, handleSpeedChange now simply calls sendSpeed immediately,
+  // while throttling is managed in the useAccelerometer hook.
+  const handleSpeedChange = useCallback((newSpeed: number) => {
+    console.log("Sending speed update:", newSpeed);
+    sendSpeed(newSpeed);
+  }, [sendSpeed]);
 
-  const handleSpeedChange = useCallback(
-    (newSpeed: number) => {
-      const now = Date.now();
-      if (now - lastSpeedUpdateRef.current >= THROTTLE_INTERVAL) {
-        console.log("Sending speed update:", newSpeed);
-        sendSpeed(newSpeed);
-        lastSpeedUpdateRef.current = now;
-      } else {
-        console.warn("Skipping speed update: throttled");
-      }
-    },
-    [sendSpeed]
-  );
-
-  // Capture accelerometer values using the hook. Note that it calls `handleSpeedChange`.
+  // Capture accelerometer values from the hook for both UI display and update.
+  // Note that the handleSpeedChange function is simplified.
   const { speed, isSupported, permissionStatus, requestPermission } = useAccelerometer(handleSpeedChange);
+
+  // Send additional connection details (this effect sends extra data like isSupported and permissionStatus every time they change).
+  useEffect(() => {
+    if (socket) {
+      console.log("Sending connection update with accelerometer data:", { speed, isSupported, permissionStatus });
+      safeSend({
+        type: "connection-update",
+        speed,
+        isSupported,
+        permissionStatus,
+      });
+    }
+  }, [socket, speed, isSupported, permissionStatus, safeSend]);
 
   // Listen for call end events on the socket.
   useEffect(() => {
@@ -89,9 +93,9 @@ export default function Home() {
         isModalOpen={isModalOpen}
         onAccept={() => {
           console.log('Call accepted (callee)');
-          // For the callee: notify the server via "connect", then start the video call.
+          // Pour le callee, on notifie le serveur via "connect" puis on démarre la visio
           handleConnect(callerIdForCall, myID);
-          // Specify role as callee and the peer's ID.
+          // Ici, on précise notre rôle de callee et l'ID du pair (l'appelant)
           setCallData({ role: "callee", remoteId: callerIdForCall });
           setModalOpen(false);
         }}
@@ -126,7 +130,7 @@ export default function Home() {
                       <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
                       <p>Vitesse: {user.speed !== undefined ?
                         `${user.speed.toFixed(2)} m/s²` :
-                        "Données de l'accélérateur non disponibles sur cet appareil"
+                        'Données de l\'accélérateur non disponibles sur cet appareil'
                       }</p>
                     </div>
                   </div>
@@ -134,12 +138,12 @@ export default function Home() {
               ) : (
                 <li key={index} className="mb-4">
                   <div className="flex flex-col">
-                    <h3 className="text-2xl mr-2">Moi</h3>
+                    <h3 className="text-2xl mr-2">C&apos;est moi 😉</h3>
                     <div className="text-xl">
                       <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
                       <p>Vitesse: {user.speed !== undefined ?
                         `${user.speed.toFixed(2)} m/s²` :
-                        "Données de l'accélérateur non disponibles sur cet appareil"
+                        'Données de l\'accélérateur non disponibles sur cet appareil'
                       }</p>
                     </div>
                   </div>
@@ -160,7 +164,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* When a call is established, display the video call */}
+      {/* Dès qu'un appel est établi, on affiche la visio */}
       {callData && socket && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-80 flex items-center justify-center">
           <VideoCall
