@@ -89,21 +89,18 @@ const useWebSocket = (
     safeSend({ action: "deny" });
   };
 
-  const ThrottleTiming = 500;
+  const ThrottleTiming = 2000;
 
   const sendSpeed = useCallback(
     (speed: number) => {
       const now = Date.now();
-      if (now - lastSend.current < ThrottleTiming) {
-        return;
-      } else {
+      if (now - lastSend.current > ThrottleTiming) {
         console.log("Sending speed:", speed);
         lastSend.current = now;
         safeSend({
           action: "update-speed",
           speed: speed,
         });
-        lastSend.current = now;
       }
     },
     [safeSend]
