@@ -22,7 +22,7 @@ export default function Home() {
   const [callData, setCallData] = useState<{ role: "caller" | "callee"; remoteId: string } | null>(null);
 
   // Initialisation du WebSocket avec des callbacks pour la signalisation d'appel
-  const { socket, sendCallInvitation, handleConnect, handleDeny, sendSpeed, safeSend } = useWebSocket(
+  const { socket, sendCallInvitation, handleConnect, handleDeny, sendSpeed } = useWebSocket(
     setUsers,
     setMyID,
     setModalOpen,
@@ -49,19 +49,6 @@ export default function Home() {
 
   // Capture accelerometer values from the hook for both UI display and update
   const { speed, isSupported, permissionStatus, requestPermission } = useAccelerometer(handleSpeedChange);
-
-  // Send the current accelerometer data (even if speed is 0) to update the user on the server.
-  useEffect(() => {
-    if (socket) {
-      console.log("Sending connection update with accelerometer data:", { speed, isSupported, permissionStatus });
-      safeSend({
-        type: "connection-update",
-        speed,
-        isSupported,
-        permissionStatus,
-      });
-    }
-  }, [socket, speed, isSupported, permissionStatus, safeSend]);
 
   // Listen for call end events on the socket.
   useEffect(() => {
