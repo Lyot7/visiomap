@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VisioMap
 
-## Getting Started
+Mon projet permet d'afficher la position des utilisateurs en temps réel, de faire des appels de visioconférence entre eux et d'afficher la vitesse de ceux-ci.
 
-First, run the development server:
+## Étapes pour utiliser l'application
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Cloner le repository**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```bash
+   git clone https://github.com/Lyot7/visiomap.git
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. **Se placer dans le dossier du projet**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   cd visiomap
+   ```
 
-## Learn More
+3. **Installer les dépendances**
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm i
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Build le projet**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   npm run build
+   ```
 
-## Deploy on Vercel
+5. **Lancer le projet**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   npx serve@latest out
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+6. **Démarrer le serveur dans un autre terminal**
+
+   ```bash
+   node src/server/server.js
+   ```
+
+7. **Se connecter à l'application**  
+   Utilisez le lien donné par la commande `npx serve@latest out`.
+
+## Architecture du projet
+
+Le projet est composé de plusieurs dossiers principaux :
+
+- **src/app**  
+  Point d'entrée de l'application. Le fichier `page.tsx` sert d'index et appelle les différents composants ou hooks nécessaires au bon fonctionnement de la page.
+- **src/components**  
+  Contient les composants du projet (fonctions permettant de gérer et afficher les données dans l'interface).
+- **src/hooks**  
+  Contient les hooks du projet (fonctions qui renvoient des données sans fournir d'affichage direct).
+- **src/server**  
+  Gère la connexion, les utilisateurs, leurs données ainsi que la communication entre eux.
+
+Le dossier **out** contient l'application build.
+
+## Technologies utilisées
+
+Pour ce projet, j'ai utilisé la stack **Next.js**, **React**, **TypeScript** et **Tailwind CSS** pour une gestion efficace de l'affichage en temps réel et des rechargements de page (re-renders) offerts par React.
+
+### Hooks et Concepts React
+
+- **useState**  
+  Utilisé pour gérer les données et déclencher un rechargement via `useEffect` ou pour partager des états entre un parent et son enfant.
+
+- **useEffect**
+
+  - _Sans paramètre_ : Permet d'initialiser des fonctions, des écouteurs ou une configuration de base au chargement de la page.
+  - _Avec paramètres_ : Permet de re-render le composant lors d'un changement de valeur dans le state, sans recharger la page ni provoquer une nouvelle connexion au serveur.
+
+- **useRef**  
+  Permet de stocker une valeur mutable qui persiste pendant tout le cycle de vie du composant sans provoquer de re-renders.
+
+- **useCallback**  
+  Permet de mémoriser une fonction pour éviter sa recréation à chaque rechargement de page.
+
+### Autres Technologies et API
+
+- **MapBox API**  
+  Utilisée pour afficher la carte et les positions des utilisateurs via l'ajout de layers.
+
+- **WebRTC**  
+  Permet de connecter deux utilisateurs en visioconférence grâce à l'envoi de requêtes au serveur (fonctionnant comme un relais).
+
+- **DeviceMotionEvent**  
+  Utilisé pour récolter les données de l'accéléromètre et les reformater afin d'afficher la vitesse de l'utilisateur (l'accéléromètre indique l'accélération, pas directement la vitesse).

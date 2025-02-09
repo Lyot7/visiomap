@@ -113,7 +113,7 @@ export default function Home() {
                     </div>
                     <div className="text-xl">
                       <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
-                      <p>Vitesse: {user.speed !== undefined ?
+                      <p>Accéleration: {user.speed !== undefined ?
                         `${user.speed.toFixed(2)} km/h` :
                         <span>{!isSupported ? 'Accéléromètre non supporté sur cet appareil' : '0 km/h'}</span>
                       }</p>
@@ -126,7 +126,7 @@ export default function Home() {
                     <h3 className="text-2xl mr-2">C&apos;est moi 😉</h3>
                     <div className="text-xl">
                       <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
-                      <p>Vitesse: {user.speed !== undefined ?
+                      <p>Accéleration: {user.speed !== undefined ?
                         `${user.speed.toFixed(2)} km/h` :
                         <span>{!isSupported ? 'Accéléromètre non supporté sur cet appareil' : '0 km/h'}</span>
                       }</p>
