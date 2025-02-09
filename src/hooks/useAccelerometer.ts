@@ -61,15 +61,20 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
               (acceleration.y || 0) ** 2 +
               (acceleration.z || 0) ** 2
           );
-          const newSpeed = Math.abs(magnitude);
+
+          // Set speed to 0 if magnitude is less than a threshold (e.g., 0.1)
+          const newSpeed = magnitude < 0.1 ? 0 : Math.abs(magnitude);
           console.log(
             "Detected speed:",
             newSpeed,
             "from acceleration:",
             acceleration
           );
-          setSpeed(newSpeed);
-          setSendSpeed(newSpeed); // Update the sendSpeed state
+
+          // Convert speed from m/s to km/h
+          const speedInKmh = newSpeed * 3.6; // 1 m/s = 3.6 km/h
+          setSpeed(speedInKmh);
+          setSendSpeed(speedInKmh); // Update the sendSpeed state
         } else {
           console.warn("No accelerometer data available from event.");
         }
