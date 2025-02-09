@@ -10,6 +10,7 @@ export interface User {
   permissionStatus?: PermissionState | string;
 }
 
+// Hook WebSocket qui gère la communication en temps réel entre les utilisateurs.
 const useWebSocket = (
   setUsers: React.Dispatch<React.SetStateAction<User[]>>,
   setMyID: React.Dispatch<React.SetStateAction<string>>,
@@ -22,7 +23,7 @@ const useWebSocket = (
 ) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
-  // Use a callback that sends data only when the WebSocket is open.
+  // Envoi sécurisé des données, uniquement si la connexion WebSocket est ouverte
   const safeSend = useCallback(
     (data: Record<string, unknown>): void => {
       if (socket && socket.readyState === WebSocket.OPEN) {
@@ -35,6 +36,7 @@ const useWebSocket = (
     [socket]
   );
 
+  // Initialisation de la connexion WebSocket
   useEffect(() => {
     console.log("Attempting to open WebSocket connection...");
     const newSocket = new WebSocket(`wss://${window.location.hostname}/ws/`);
@@ -58,6 +60,7 @@ const useWebSocket = (
     };
   }, []);
 
+  // Fonction pour gérer la connexion lors de l'acceptation d'un appel
   const handleConnect = (userId: string, myID: string) => {
     console.log(`Connecting with userId: ${userId}, myID: ${myID}`);
     safeSend({
@@ -67,6 +70,7 @@ const useWebSocket = (
     });
   };
 
+  // Fonction pour envoyer une invitation d'appel à un autre utilisateur
   const sendCallInvitation = (
     callerId: string,
     recieverId: string,
@@ -82,15 +86,16 @@ const useWebSocket = (
     });
   };
 
+  // Fonction appelée pour refuser une invitation d'appel
   const handleDeny = () => {
     console.log("Denying call invitation");
     safeSend({ action: "deny" });
   };
 
+  // Envoi de la vitesse calculée par l'accéléromètre vers le serveur
   const sendSpeed = useCallback(
     (speed: number) => {
       console.log("Sending speed:", speed);
-
       safeSend({
         action: "update-speed",
         speed: speed,
@@ -99,6 +104,7 @@ const useWebSocket = (
     [safeSend]
   );
 
+  // Handler d'évènements à la connexion WebSocket ouverte
   useEffect(() => {
     if (socket) {
       socket.onopen = () => {
@@ -107,6 +113,7 @@ const useWebSocket = (
         socket.onmessage = (event) => {
           const data = JSON.parse(event.data);
           console.log("Received message:", data);
+          // Attribution de l'ID utilisateur dès réception du message "userID"
           if (data.type === "userID") {
             userId = data.id;
             setMyID(userId);
@@ -124,6 +131,7 @@ const useWebSocket = (
           }
         };
 
+        // Demande du nom de l'utilisateur et récupération de sa position géographique
         const name = prompt("Donne moi ton p'tit nom") || "Anonymous";
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -154,6 +162,7 @@ const useWebSocket = (
         );
       };
 
+      // Demande la liste des utilisateurs toutes les 5 secondes
       const intervalId = setInterval(() => {
         console.log("Requesting user list...");
         safeSend({ action: "get-users" });

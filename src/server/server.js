@@ -11,42 +11,42 @@ const app = express();
 
 const PORT = process.env.NEXT_PUBLIC_PORT || 5000;
 
-// Middleware
+// Middleware : autorise les requêtes CORS et parse le corps des requêtes au format JSON
 app.use(cors());
 app.use(bodyParser.json());
 
-// Root route
+// Route racine : message d'accueil pour l'API
 app.get("/", (req, res) => {
   res.send("Welcome to the User Management API!");
 });
 
-// In-memory user storage (for demonstration purposes)
+// Stockage des utilisateurs en mémoire (pour la démo)
 let users = [];
 
-// Create an HTTP server and attach a WebSocket server to it.
+// Création d'un serveur HTTP et attachement du serveur WebSocket
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-// Handle WebSocket connections
+// Gestion des connexions WebSocket
 wss.on("connection", (client) => {
   console.log("New WebSocket connection established.");
   const userId = uuidv4();
-  // Attach the generated userId to the client
+  // Associe un identifiant unique au client connecté
   client.userId = userId;
 
-  // Send the userID to the client
+  // Envoie de l'ID utilisateur au client
   client.send(JSON.stringify({ type: "userID", id: userId }));
 
-  // Handle incoming messages from this client
+  // Traitement des messages entrants
   client.on("message", (message) => {
     console.log("Received message:", message.toString());
     const data = JSON.parse(message.toString());
 
-    // If a connection message is received, add the user
+    // Ajout de l'utilisateur lors de la connexion
     if (data.type === "connection") {
       const user = { id: userId, ...data };
       users.push(user);
-      // Broadcast the updated user list to all clients
+      // Broadcast de la nouvelle liste des utilisateurs à tous les clients
       wss.clients.forEach((c) => {
         if (c.readyState === WebSocket.OPEN) {
           c.send(JSON.stringify({ type: "newUser", users }));
@@ -54,13 +54,14 @@ wss.on("connection", (client) => {
       });
     }
 
-    // Process actions based on data.action
+    // Traitement des actions ou types de messages
     switch (data.action || data.type) {
       case "get-users":
         console.log("Sending user list to client.");
         client.send(JSON.stringify({ type: "users", users }));
         break;
       case "call-invitation": {
+        // Envoi d'une invitation d'appel d'un utilisateur vers un autre
         const callerId = data.callerId.toString();
         const receiverId = data.recieverId.toString();
         const recipient = [...wss.clients].find((c) => c.userId === receiverId);
@@ -78,8 +79,7 @@ wss.on("connection", (client) => {
         break;
       }
       case "connect": {
-        // The callee notifies that they accept the call.
-        // Find the caller using the provided userId.
+        // Lorsque le callee accepte l'appel, notifie le caller
         const targetSocket = [...wss.clients].find(
           (c) => c.userId === data.userId.toString()
         );
@@ -87,19 +87,18 @@ wss.on("connection", (client) => {
           targetSocket.send(
             JSON.stringify({
               type: "call-accepted",
-              from: data.myID, // The callee's ID
+              from: data.myID, // ID du callee
             })
           );
         }
         break;
       }
-      // WebRTC signaling messages
+      // Traitement des messages de signalisation WebRTC
       case "webrtc-offer": {
         const targetSocket = [...wss.clients].find(
           (c) => c.userId === data.target.toString()
         );
         if (targetSocket && targetSocket.readyState === WebSocket.OPEN) {
-          // Attach the sender's userId so the recipient knows who sent the offer
           data.source = client.userId;
           targetSocket.send(JSON.stringify(data));
         }
@@ -126,10 +125,12 @@ wss.on("connection", (client) => {
         break;
       }
       case "deny": {
+        // Cas où l'appel est refusé par le destinataire
         console.log("deny");
         break;
       }
       case "hangup": {
+        // Traitement de la fin d'appel (raccrocher)
         const targetSocket = [...wss.clients].find(
           (c) => c.userId === data.target.toString()
         );
@@ -145,12 +146,13 @@ wss.on("connection", (client) => {
         break;
       }
       case "update-speed": {
+        // Mise à jour de la vitesse de l'utilisateur
         const user = users.find((u) => u.id === client.userId);
         if (user) {
           console.log("data from update-speed : ", data);
           user.speed = data.speed;
           console.log("Speed received from client:", data.speed);
-          // Broadcast the updated user list to all clients
+          // Broadcast de la liste mise à jour des utilisateurs
           wss.clients.forEach((c) => {
             if (c.readyState === WebSocket.OPEN) {
               c.send(JSON.stringify({ type: "newUser", users }));
@@ -161,6 +163,7 @@ wss.on("connection", (client) => {
         break;
       }
       case "connection-update": {
+        // Mise à jour des informations de l'utilisateur (vitesse, support, permission)
         const userIndex = users.findIndex((u) => u.id === client.userId);
         if (userIndex !== -1) {
           users[userIndex] = {
@@ -170,7 +173,6 @@ wss.on("connection", (client) => {
             permissionStatus: data.permissionStatus,
           };
           console.log("User updated with connection-update:", users[userIndex]);
-          // Broadcast the updated user list to all clients
           wss.clients.forEach((c) => {
             if (c.readyState === WebSocket.OPEN) {
               c.send(JSON.stringify({ type: "newUser", users }));
@@ -185,9 +187,9 @@ wss.on("connection", (client) => {
     }
   });
 
+  // Suppression de l'utilisateur lors de la déconnexion du client
   client.on("close", () => {
     console.log("Client disconnected");
-    // Remove the disconnected user from the list
     users = users.filter((user) => user.id !== userId);
   });
 });

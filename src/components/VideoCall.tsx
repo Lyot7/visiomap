@@ -28,17 +28,18 @@ interface VideoCallProps {
     onCallEnded: () => void;
 }
 
+// Composant pour gérer un appel vidéo via la technologie WebRTC.
 const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onCallEnded }) => {
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
 
-    // Use refs for a stable, non-reactive reference.
+    // Référence pour le flux média local
     const localStreamRef = useRef<MediaStream | null>(null);
-    // This ref holds an offer if it arrives before the local stream is ready.
+    // Stocke temporairement une offre entrante si le flux local n'est pas encore prêt
     const pendingOfferRef = useRef<WebRTCOfferMessage | null>(null);
 
-    // Helper to process an incoming offer.
+    // Fonction permettant de traiter une offre WebRTC entrante
     const handleOffer = useCallback((offerData: WebRTCOfferMessage): void => {
         if (!pcRef.current) return;
         const pc = pcRef.current;
@@ -61,7 +62,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
             );
     }, [socket, remoteId, myID]);
 
-    // Create the RTCPeerConnection and obtain local media.
+    // Création de la connexion WebRTC et obtention du flux média local
     useEffect(() => {
         console.log("[VideoCall] Creating RTCPeerConnection");
         const pc = new RTCPeerConnection({
@@ -72,7 +73,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
         });
         pcRef.current = pc;
 
-        // Handle negotiation
+        // Lorsqu'une négociation est nécessaire (uniquement pour le caller)
         pc.onnegotiationneeded = () => {
             console.log("[VideoCall] Negotiation needed");
             if (role === "caller") {
@@ -108,6 +109,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
             console.log("[VideoCall] Connection State:", pc.connectionState);
         };
 
+        // Envoi des candidats ICE au pair via le serveur (WebSocket)
         pc.onicecandidate = event => {
             if (event.candidate) {
                 console.log("[VideoCall] Sending ICE candidate", event.candidate);
@@ -122,6 +124,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
             }
         };
 
+        // Réception du flux distant et attribution à l'élément vidéo dédié
         pc.ontrack = event => {
             console.log("[VideoCall] Remote track received", {
                 kind: event.track.kind,
@@ -149,7 +152,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
             console.log("[VideoCall] Signaling State:", pc.signalingState);
         };
 
-        // Get local media
+        // Obtention du flux média local (vidéo et audio)
         navigator.mediaDevices
             .getUserMedia({ video: true, audio: true })
             .then((stream) => {
@@ -161,12 +164,13 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
                     localVideoRef.current.srcObject = stream;
                 }
 
-                // Add tracks to peer connection
+                // Ajoute chaque piste du flux local à la connexion RTCPeerConnection
                 stream.getTracks().forEach((track) => {
                     console.log("[VideoCall] Adding track to peer connection:", track.kind);
                     pc.addTrack(track, stream);
                 });
 
+                // Si une offre était en attente, la traiter ici
                 if (pendingOfferRef.current) {
                     console.log("[VideoCall] Processing pending offer");
                     handleOffer(pendingOfferRef.current);
@@ -186,7 +190,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
         };
     }, [socket, remoteId, myID, handleOffer, role]);
 
-    // WebSocket message handler.
+    // Gestion des messages WebSocket relatifs à WebRTC (offres, réponses, candidats ICE)
     useEffect(() => {
         if (!socket || !pcRef.current) return;
 
@@ -223,6 +227,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
         return () => socket.removeEventListener("message", handleSocketMessage);
     }, [socket, remoteId, myID, handleOffer]);
 
+    // Fonction pour raccrocher l'appel, fermer la connexion et notifier le serveur
     const handleHangup = useCallback(() => {
         console.log("[VideoCall] Hanging up");
         if (pcRef.current) {
@@ -231,17 +236,16 @@ const VideoCall: React.FC<VideoCallProps> = ({ socket, myID, remoteId, role, onC
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop());
         }
-        // Notify server about hangup
+        // Notifie le serveur de la fin d'appel
         socket.send(JSON.stringify({
             action: "hangup",
             target: remoteId,
             source: myID
         }));
-        // Call the onCallEnded callback
         onCallEnded();
     }, [socket, remoteId, myID, onCallEnded]);
 
-    // Add effect to handle incoming hangup messages
+    // Ecoute des messages de fin d'appel provenant du serveur (fin de communication par le pair)
     useEffect(() => {
         if (!socket) return;
 

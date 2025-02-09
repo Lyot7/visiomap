@@ -9,19 +9,20 @@ import { useCallback, useEffect, useState } from 'react';
 
 dotenv.config();
 
+// Page principale qui affiche la carte, la liste des utilisateurs connectés et gère les appels vidéo.
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
-  // New state: mapUsers will only hold users when a new one is added.
+  // Etat pour les utilisateurs affichés sur la carte (mise à jour uniquement lors de l'ajout)
   const [mapUsers, setMapUsers] = useState<User[]>([]);
-  const [myID, setMyID] = useState<string>(""); // On utilise une string (ID généré par uuid)
+  const [myID, setMyID] = useState<string>(""); // Identifiant unique généré par le serveur
   const [isModalOpen, setModalOpen] = useState(false);
-  // Pour le caller (celui qui initie l'appel) on stocke l'ID de la personne appelée
+  // Stocke l'ID de l'utilisateur à appeler
   const [callerIdForCall, setCallerIdForCall] = useState<string>("");
   const [callerName, setCallerName] = useState<string>("Quelqu'un");
-  // Une fois l'appel accepté, on enregistre le rôle et l'ID du pair
+  // Données de l'appel vidéo (rôle et identifiant du pair)
   const [callData, setCallData] = useState<{ role: "caller" | "callee"; remoteId: string } | null>(null);
 
-  // Initialisation du WebSocket avec des callbacks pour la signalisation d'appel
+  // Initialisation du WebSocket pour gérer la communication en temps réel et la signalisation d'appel
   const { socket, sendCallInvitation, handleConnect, handleDeny, sendSpeed } = useWebSocket(
     setUsers,
     setMyID,
@@ -31,26 +32,27 @@ export default function Home() {
     setCallData
   );
 
-  // Pour le caller : quand on clique sur "Appeler", on envoie une invitation
+  // Fonction pour initier un appel vers un autre utilisateur
   const handleConnectRequest = (receiverId: string) => {
     console.log(`Calling user ${receiverId} from user ${myID}`);
     sendCallInvitation(myID, receiverId, users);
   };
 
+  // Callback pour gérer la fin d'un appel
   const handleCallEnded = useCallback(() => {
     console.log('Call ended');
     setCallData(null);
   }, []);
 
+  // Callback pour envoyer la vitesse relevée par l'accéléromètre via WebSocket
   const handleSpeedChange = useCallback((speed: number) => {
-    // Send speed immediately when it changes
     sendSpeed(speed);
   }, [sendSpeed]);
 
-  // Capture accelerometer values from the hook for both UI display and update
+  // Récupère les données de l'accéléromètre (vitesse, support, permission)
   const { speed, isSupported, permissionStatus, requestPermission } = useAccelerometer(handleSpeedChange);
 
-  // Listen for call end events on the socket.
+  // Ecoute les messages de fin d'appel sur le socket
   useEffect(() => {
     if (socket) {
       socket.onmessage = (event) => {
@@ -62,9 +64,7 @@ export default function Home() {
     }
   }, [socket]);
 
-  // Update `mapUsers` only when a new user connects.
-  // Instead of always replacing the state with the `users` array,
-  // only add users that are not already in `mapUsers`
+  // Mise à jour de la carte : on ajoute les nouveaux utilisateurs
   useEffect(() => {
     setMapUsers((prevMapUsers) => {
       const newUsers = users.filter(user => !prevMapUsers.some(existingUser => existingUser.id === user.id));
@@ -74,13 +74,13 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-between px-24 py-12 gap-8 h-screen">
+      {/* Modal d'invitation à l'appel vidéo */}
       <CallInvitationModal
         isModalOpen={isModalOpen}
         onAccept={() => {
           console.log('Call accepted (callee)');
-          // Pour le callee, on notifie le serveur via "connect" puis on démarre la visio
+          // Une fois l'appel accepté, on notifie le serveur et on démarre l'appel vidéo.
           handleConnect(callerIdForCall, myID);
-          // Ici, on précise notre rôle de callee et l'ID du pair (l'appelant)
           setCallData({ role: "callee", remoteId: callerIdForCall });
           setModalOpen(false);
         }}
@@ -91,7 +91,7 @@ export default function Home() {
         }}
         callerName={callerName}
       />
-      {/* Updated Map component to use mapUsers so that the map is only updated when new users are added */}
+      {/* Affichage de la carte avec les utilisateurs connectés */}
       <Map users={mapUsers} />
       <section>
         <h1 className="text-3xl font-bold">Trouvez vos collègues et lancez une visio</h1>
@@ -137,7 +137,7 @@ export default function Home() {
             ))}
           </ul>
         </div>
-        {/* Debug section to show accelerometer hook data */}
+        {/* Section de débuggage pour afficher en temps réel les données de l'accéléromètre */}
         <div className="mt-8 p-4 border border-gray-300">
           <h2 className="text-xl font-bold">Live Accelerometer Data</h2>
           <p><strong>Speed:</strong> {speed}</p>
@@ -149,7 +149,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Dès qu'un appel est établi, on affiche la visio */}
+      {/* Affiche l'appel vidéo dès qu'il est établi */}
       {callData && socket && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-80 flex items-center justify-center">
           <VideoCall
