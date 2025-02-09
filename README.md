@@ -60,7 +60,7 @@ Le dossier **out** contient l'application build.
 
 ## Technologies utilisées
 
-Pour ce projet, j'ai utilisé la stack **Next.js**, **React**, **TypeScript** et **Tailwind CSS** pour une gestion efficace de l'affichage en temps réel et des rechargements de page (re-renders) offerts par React.
+Pour ce projet, j'ai utilisé une stack **Next.js**, **React**, **TypeScript**, **Tailwind CSS** et **Node.js** car je la connais bien et pour une gestion efficace de l'affichage en temps réel et des rechargements de composants de l'interface (re-renders) offerts par React.
 
 ### Hooks et Concepts React
 
