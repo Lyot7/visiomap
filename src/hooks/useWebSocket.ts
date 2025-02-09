@@ -43,7 +43,7 @@ const useWebSocket = (
       window.location.hostname === "localhost:7864"
         ? "localhost"
         : window.location.hostname + "/ws/";
-    const newSocket = new WebSocket(`wss://${hostname}/ws/`);
+    const newSocket = new WebSocket(`wss://${hostname}`);
     setSocket(newSocket);
 
     newSocket.onopen = () => {
