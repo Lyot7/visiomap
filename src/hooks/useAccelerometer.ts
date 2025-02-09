@@ -6,9 +6,8 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
   const [isSupported, setIsSupported] = useState<boolean>(false);
   const [permissionStatus, setPermissionStatus] =
     useState<PermissionState | null>(null);
-  // This state (and ref) is used to throttle sending the speed data
-  const [sendSpeed, setSendSpeed] = useState<number | null>(null);
   const lastSend = useRef<number>(Date.now());
+  const THROTTLE_DELAY = 500; // 500ms throttle delay
 
   // Refs to hold velocity and the previous timestamp for integration.
   const velocityRef = useRef({ x: 0, y: 0, z: 0 });
@@ -111,9 +110,15 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
         const speedInKmh = currentSpeed * 3.6;
         console.log("Integrated speed (km/h):", speedInKmh);
 
-        // Update local states
+        // Update local state for UI, etc.
         setSpeed(speedInKmh);
-        setSendSpeed(speedInKmh);
+
+        // Throttle sending the speed via onSpeedChange to at most every 500ms.
+        const now = Date.now();
+        if (now - lastSend.current >= THROTTLE_DELAY) {
+          onSpeedChange(speedInKmh);
+          lastSend.current = now;
+        }
       };
 
       window.addEventListener("devicemotion", handleMotion);
@@ -147,16 +152,6 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
 
     initializeAccelerometer();
   }, [onSpeedChange]);
-
-  // Throttle sending speed data to the server every 500ms
-  const throttle = 500; // in milliseconds
-  useEffect(() => {
-    const now = Date.now();
-    if (now - lastSend.current >= throttle && sendSpeed !== null) {
-      onSpeedChange(sendSpeed);
-      lastSend.current = now;
-    }
-  }, [sendSpeed, onSpeedChange]);
 
   console.log(
     "useAccelerometer hook setup complete.",
