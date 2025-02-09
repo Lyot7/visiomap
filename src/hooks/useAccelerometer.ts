@@ -53,8 +53,10 @@ const useAccelerometer = (onSpeedChange: (speed: number) => void) => {
     const setupEventListener = () => {
       console.log("Setting up devicemotion event listener.");
       const handleMotion = (event: DeviceMotionEvent) => {
-        console.log("devicemotion event triggered:", event);
-        const acceleration = event.accelerationIncludingGravity;
+        // Prefer acceleration without gravity
+        const acceleration =
+          event.acceleration || event.accelerationIncludingGravity;
+
         if (acceleration) {
           const magnitude = Math.sqrt(
             (acceleration.x || 0) ** 2 +
