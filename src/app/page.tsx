@@ -128,7 +128,7 @@ export default function Home() {
                       <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
                       <p>Vitesse: {user.speed !== undefined ?
                         `${user.speed.toFixed(2)} m/s²` :
-                        'Données de l\'accélérateur non disponibles sur cet appareil'
+                        <span>{!isSupported ? 'Accéléromètre non supporté sur cet appareil' : '0m/s²'}</span>
                       }</p>
                     </div>
                   </div>
@@ -141,7 +141,7 @@ export default function Home() {
                       <p>Position: {user.coordinates.lat}, {user.coordinates.lng}</p>
                       <p>Vitesse: {user.speed !== undefined ?
                         `${user.speed.toFixed(2)} m/s²` :
-                        'Données de l\'accélérateur non disponibles sur cet appareil'
+                        <span>{!isSupported ? 'Accéléromètre non supporté sur cet appareil' : '0m/s²'}</span>
                       }</p>
                     </div>
                   </div>
